@@ -1,0 +1,2588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c6ce0">
+  <title>Registro de tomas</title>
+  <style>
+    :root {
+      --bg: #f5f3fb;
+      --card: #ffffff;
+      --primary: #7c6ce0;
+      --primary-dark: #5d4fc7;
+      --text: #2b2b3a;
+      --muted: #8a8a9a;
+      --border: #e4e1f0;
+      --formula: #4aa3df;
+      --materna: #e07ba8;
+      --extra: #3bb89a;
+      --danger: #e05a5a;
+      --caca: #b07a4f;
+      --pis: #e0b400;
+      --shadow: 0 2px 12px rgba(90, 70, 180, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* ---------- Layout con barra lateral ---------- */
+    .app {
+      display: flex;
+      min-height: 100vh;
+      align-items: stretch;
+    }
+
+    .sidebar {
+      flex: 0 0 220px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      height: 100vh;
+    }
+
+    .brand {
+      padding: 4px 8px 16px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: var(--primary-dark);
+    }
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 24px 16px;
+    }
+    .content {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab:hover { background: #f3f1fb; color: var(--text); }
+    .tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .tab .ico { font-size: 1.15rem; line-height: 1; }
+    .nav-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #2f8f6e;
+      margin-left: auto;
+      box-shadow: 0 0 0 3px rgba(47, 143, 110, 0.18);
+    }
+    .nav-dot[hidden] { display: none; }
+    .tab.active .nav-dot { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35); }
+
+    /* Botón de Ajustes anclado al fondo de la barra lateral */
+    .nav-settings { margin-top: auto; }
+
+    /* Acciones del modal de Ajustes, apiladas a todo el ancho */
+    .settings-actions { display: flex; flex-direction: column; gap: 10px; }
+    .settings-actions .secondary { width: 100%; }
+
+    /* Botones de menú: solo visibles en móvil */
+    .menu-toggle, .menu-close { display: none; }
+
+    /* En pantallas estrechas, la barra lateral se oculta tras un icono de menú */
+    @media (max-width: 720px) {
+      .app { flex-direction: column; }
+
+      .menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 60;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--primary-dark);
+        font-size: 1.3rem;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        width: 100%;
+        height: 100%;
+        flex: none;
+        border: none;
+        padding: 20px;
+        overflow-y: auto;
+        display: none;
+      }
+      body.menu-open .sidebar { display: flex; }
+      body.menu-open { overflow: hidden; }
+
+      .menu-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-self: flex-end;
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.4rem;
+        cursor: pointer;
+      }
+
+      .brand { text-align: center; padding: 4px 8px 20px; }
+      .nav { display: flex; flex-direction: column; gap: 10px; }
+      .tab { justify-content: flex-start; font-size: 1.1rem; padding: 16px 18px; }
+      .main { padding: 16px; padding-top: 12px; }
+
+      /* Título centrado y en línea con el botón de menú (alto 44px, top 12px) */
+      .toolbar.toolbar-split {
+        justify-content: center;
+        min-height: 44px;
+        margin-bottom: 16px;
+      }
+      .toolbar.toolbar-split .panel-title { text-align: center; }
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Sub-pestañas (Cristina / Fernando dentro de Sueño) */
+    .subtabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .subtab {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .subtab:hover { background: #f3f1fb; color: var(--text); }
+    .subtab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .subpanel { display: none; }
+    .subpanel.active { display: block; }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+    }
+
+    .field { margin-bottom: 14px; }
+
+    .field label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    input[type="date"],
+    input[type="time"],
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      background: #fbfaff;
+      color: var(--text);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124, 108, 224, 0.15);
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+    .row .field { flex: 1; }
+
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+    .check-label input { width: auto; accent-color: var(--primary); }
+
+    .segmented {
+      display: flex;
+      gap: 8px;
+    }
+
+    .segmented input { display: none; }
+
+    .segmented label {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: none;
+      letter-spacing: 0;
+      margin: 0;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .segmented input[value="formula"]:checked + label {
+      background: var(--formula);
+      border-color: var(--formula);
+      color: #fff;
+    }
+    .segmented input[value="materna"]:checked + label {
+      background: var(--materna);
+      border-color: var(--materna);
+      color: #fff;
+    }
+    .segmented input[value="caca"]:checked + label {
+      background: var(--caca);
+      border-color: var(--caca);
+      color: #fff;
+    }
+    .segmented input[value="pis"]:checked + label {
+      background: var(--pis);
+      border-color: var(--pis);
+      color: var(--text);
+    }
+
+    button.primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.primary:hover { background: var(--primary-dark); }
+    button.primary:active { transform: scale(0.99); }
+
+    .form-actions { display: flex; gap: 10px; }
+    .form-actions .primary { flex: 1; }
+
+    button.secondary {
+      padding: 14px 18px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary:hover { background: #f3f1fb; color: var(--text); }
+
+    /* Resalta la tarjeta del formulario cuando se está editando */
+    .card.editing {
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    /* ---------- Modal ---------- */
+    .toolbar { margin-bottom: 20px; }
+    .toolbar .primary { width: 100%; }
+
+    .toolbar-split {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar-split .panel-title {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--primary-dark);
+    }
+    .toolbar-split .primary { width: auto; white-space: nowrap; }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(40, 30, 80, 0.45);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .modal-overlay[hidden] { display: none; }
+
+    .modal-box {
+      width: 100%;
+      max-width: 480px;
+      margin: auto;
+      animation: modalIn 0.15s ease-out;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: none; opacity: 1; }
+    }
+
+    .edit {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.05rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+    .edit:hover { color: var(--primary-dark); background: rgba(124,108,224,0.12); }
+
+    .list-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .list-head h2 { margin: 0; }
+    .list-head .primary {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .total {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .total strong { color: var(--primary-dark); }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px 0;
+      font-size: 0.9rem;
+    }
+
+    .day-group { margin-bottom: 18px; }
+    .day-group:last-child { margin-bottom: 0; }
+
+    .day-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      text-transform: capitalize;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .day-label span:last-child {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .toma {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      background: #fbfaff;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.formula { background: var(--formula); }
+    .dot.materna { background: var(--materna); }
+    .toma-type .dot { display: inline-block; vertical-align: middle; margin-right: 5px; }
+    /* Separador entre tipos de leche (escritorio); en móvil pasan a líneas distintas */
+    .tipo-linea + .tipo-linea::before { content: "·"; margin: 0 5px; color: var(--muted); }
+    @media (max-width: 720px) {
+      .tipo-linea { display: block; }
+      .tipo-linea + .tipo-linea::before { content: none; }
+    }
+    .dot.extra { background: var(--extra); }
+    .dot.sueno { background: #9b6cd0; }
+    .dot.med { background: #e0a14a; }
+    .dot.caca { background: var(--caca); }
+    .dot.pis { background: var(--pis); }
+
+    .toma-info { flex: 1; min-width: 0; }
+    .toma-time { font-weight: 700; font-size: 1rem; }
+    .toma-dur { font-weight: 400; font-size: 0.8rem; color: var(--muted); }
+    .toma-type { font-size: 0.8rem; color: var(--muted); }
+    .toma-type .accent { color: var(--primary); }
+    .toma-gap { font-size: 0.8rem; margin-top: 2px; }
+    .toma-gap .gap, .toma-type .gap { color: var(--primary-dark); }
+    .toma-type .ongoing { color: #9b6cd0; font-weight: 700; }
+
+    .opt { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin: -4px 0 14px; }
+
+    .since-card { text-align: center; }
+    .since-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 6px;
+    }
+    .since-value { font-size: 1.6rem; font-weight: 700; color: var(--extra); }
+    .since-value.muted { font-size: 1rem; font-weight: 600; color: var(--muted); }
+    #e-since:not(.muted) { color: var(--primary); }
+    #t-since:not(.muted) { color: var(--primary-dark); }
+    .since-value.warn-text { color: var(--danger); }
+    .since-value.ok-text { color: #2f8f6e; }
+    @media (max-width: 720px) {
+      .since-value { font-size: 20px; }
+    }
+
+    /* Resumen por día (Tomas) */
+    .resumen-dia {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fbfaff;
+    }
+    .resumen-dia:last-child { margin-bottom: 0; }
+    .resumen-fecha {
+      font-weight: 700;
+      color: var(--primary-dark);
+      text-transform: capitalize;
+      margin-bottom: 10px;
+    }
+    .resumen-stats { display: flex; gap: 28px; margin-bottom: 12px; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; }
+    /* Resumen de Tomas: fecha y datos en la misma fila, datos a la derecha */
+    #t-resumen .resumen-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    #t-resumen .resumen-fecha { margin-bottom: 0; color: var(--text); }
+    #t-resumen .resumen-stats {
+      margin-bottom: 0;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    #t-resumen .stat-val {
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    /* Móvil: fecha en una línea y los datos en la siguiente, a la izquierda */
+    @media (max-width: 720px) {
+      #t-resumen .resumen-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      #t-resumen .resumen-stats { justify-content: flex-start; }
+    }
+
+    /* Pañales: una tarjeta por día con los items dentro */
+    #pa-list .resumen-fecha { margin-bottom: 10px; color: var(--text); }
+    .panal-tiles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .panal-tile {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .panal-tile:hover { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(124, 108, 224, 0.15); }
+    .panal-ico { font-size: 1.7rem; line-height: 1; }
+    .panal-ico-img { width: 30px; height: 30px; display: block; object-fit: contain; }
+
+    /* Botón de eliminar dentro del modal de edición */
+    .btn-danger {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid var(--danger);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--danger);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .stat-lbl {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .pct-bar {
+      display: flex;
+      height: 10px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--border);
+      margin-bottom: 8px;
+    }
+    .pct-bar .pct-materna { background: var(--materna); }
+    .pct-bar .pct-formula { background: var(--formula); }
+    .pct-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 6px 16px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .pct-legend .dot { display: inline-block; vertical-align: middle; margin-right: 4px; }
+
+    /* Paginador del historial */
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 24px 0;
+    }
+    .pager:empty { display: none; }
+    .pager-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .pager-btn:hover:not(:disabled) { background: #f3f1fb; }
+    .pager-btn:disabled { color: var(--muted); opacity: 0.45; cursor: default; }
+    .pager-center { text-align: center; line-height: 1.25; }
+    .pager-label { display: block; font-size: 0.95rem; color: var(--text); font-weight: 700; }
+    .pager-byline { font-size: 0.78rem; color: var(--muted); font-weight: 400; }
+    .toma-amount {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .toma-amount .aprox {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin-right: 5px;
+      vertical-align: middle;
+      cursor: help;
+    }
+
+    .del {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+    .del:hover { color: var(--danger); background: rgba(224,90,90,0.1); }
+
+    .status {
+      text-align: center;
+      font-size: 0.8rem;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-top: 4px;
+    }
+    .status.ok { color: #2f8f6e; background: rgba(59, 184, 154, 0.12); }
+    .status.err { color: var(--danger); background: rgba(224, 90, 90, 0.12); font-weight: 600; }
+
+    /* ---------- Login / Auth ---------- */
+    /* El atributo hidden debe ganar al display:flex de estos contenedores */
+    .app[hidden], .login-overlay[hidden], .auth-loading[hidden] { display: none !important; }
+    .auth-loading {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+    }
+    .auth-loading-spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      animation: auth-spin 0.8s linear infinite;
+    }
+    @keyframes auth-spin { to { transform: rotate(360deg); } }
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg); padding: 20px;
+    }
+    .login-card {
+      width: 100%; max-width: 360px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    .login-card h1 { margin: 0 0 4px; font-size: 1.4rem; color: var(--text); }
+    .login-card p.login-sub { margin: 0 0 20px; color: var(--muted); font-size: 0.9rem; }
+    .login-card .field { margin-bottom: 14px; }
+    .login-card label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--muted); }
+    .login-card input {
+      width: 100%; box-sizing: border-box;
+      padding: 11px 12px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 1rem; color: var(--text); background: #fff;
+    }
+    .login-card button[type="submit"] {
+      width: 100%; margin-top: 6px; padding: 12px;
+      border: none; border-radius: 10px; cursor: pointer;
+      background: var(--primary); color: #fff; font-size: 1rem; font-weight: 600;
+    }
+    .login-card button[type="submit"]:hover { background: var(--primary-dark); }
+    .login-error { color: var(--danger); font-size: 0.85rem; margin: 12px 0 0; min-height: 1em; }
+    .logout-row { margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <!-- Pantalla de carga mientras se comprueba la sesión -->
+  <div id="auth-loading" class="auth-loading">
+    <span class="auth-loading-spinner"></span>
+  </div>
+
+  <!-- Login -->
+  <div id="login-overlay" class="login-overlay" hidden>
+    <div class="login-card">
+      <h1>🍼 Registro</h1>
+      <p class="login-sub">Inicia sesión para sincronizar tus datos</p>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Contraseña</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+        <button type="submit">Entrar</button>
+        <p id="login-error" class="login-error"></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="app" id="app-root" hidden>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    <aside class="sidebar" id="sidebar">
+      <button class="menu-close" id="menu-close" aria-label="Cerrar menú">✕</button>
+      <div class="brand">
+        <h1>🍼 Registro</h1>
+        <p>Tomas y extracciones</p>
+      </div>
+      <nav class="nav">
+        <button class="tab active" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
+        <button class="tab" data-panel="extracciones"><span class="ico">💧</span> Extracciones</button>
+        <button class="tab" data-panel="panales"><span class="ico">🧷</span> Pañales</button>
+        <button class="tab" data-panel="sueno"><span class="ico">😴</span> Sueño</button>
+        <button class="tab" data-panel="paracetamol"><span class="ico">💊</span> Paracetamol<span class="nav-dot" id="pc-nav-dot" hidden></span></button>
+      </nav>
+      <button class="tab nav-settings" id="settings-btn"><span class="ico">⚙️</span> Ajustes</button>
+    </aside>
+
+    <main class="main">
+      <div class="content">
+
+    <!-- ===================== TOMAS ===================== -->
+    <section class="panel active" id="panel-tomas">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">🍼 Tomas</h2>
+      </div>
+
+      <div class="modal-overlay" id="t-modal" hidden>
+        <div class="modal-box card">
+        <h2 id="t-titulo">Nueva toma</h2>
+        <form id="form-toma">
+          <div class="row">
+            <div class="field">
+              <label for="t-fecha">Fecha</label>
+              <input type="date" id="t-fecha" required>
+            </div>
+            <div class="field">
+              <label for="t-hora">Hora</label>
+              <input type="time" id="t-hora" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="t-materna">Materna (ml)</label>
+              <input type="number" id="t-materna" min="0" step="5" inputmode="numeric" placeholder="Ej. 80">
+            </div>
+            <div class="field">
+              <label for="t-formula">Fórmula (ml)</label>
+              <input type="number" id="t-formula" min="0" step="5" inputmode="numeric" placeholder="Ej. 90">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary" id="t-submit">Guardar toma</button>
+            <button type="button" class="secondary" id="t-cancel">Cancelar</button>
+          </div>
+        </form>
+        </div>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Última toma</div>
+        <div class="since-value" id="t-since">—</div>
+      </div>
+
+      <div class="subtabs">
+        <button class="subtab active" data-sub="tomas-historial">Historial</button>
+        <button class="subtab" data-sub="tomas-resumen">Resumen</button>
+      </div>
+
+      <div class="subpanel active" id="sub-tomas-historial">
+        <div class="card">
+          <div class="list-head">
+            <h2>Historial de tomas</h2>
+            <button type="button" class="primary" id="t-new">+ Nueva toma</button>
+          </div>
+          <div class="pager" id="t-pager"></div>
+          <div id="t-list"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" id="sub-tomas-resumen">
+        <div class="card">
+          <div class="list-head">
+            <h2>Resumen por día</h2>
+          </div>
+          <div id="t-resumen"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== EXTRACCIONES ===================== -->
+    <section class="panel" id="panel-extracciones">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">💧 Extracciones</h2>
+      </div>
+
+      <div class="modal-overlay" id="e-modal" hidden>
+        <div class="modal-box card">
+        <h2 id="e-titulo">Nueva extracción</h2>
+        <form id="form-extra">
+          <div class="row">
+            <div class="field">
+              <label for="e-fecha">Fecha</label>
+              <input type="date" id="e-fecha" required>
+            </div>
+            <div class="field">
+              <label for="e-hora">Hora</label>
+              <input type="time" id="e-hora" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="e-duracion">Duración (minutos)</label>
+              <input type="number" id="e-duracion" min="0" step="1" inputmode="numeric" placeholder="Ej. 15" required>
+            </div>
+            <div class="field">
+              <label for="e-ml">Cantidad (ml)</label>
+              <input type="number" id="e-ml" min="0" step="5" inputmode="numeric" placeholder="Opcional">
+            </div>
+          </div>
+
+          <label class="check-label">
+            <input type="checkbox" id="e-incompleto">
+            Cantidad incompleta
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="primary" id="e-submit">Guardar extracción</button>
+            <button type="button" class="secondary" id="e-cancel">Cancelar</button>
+          </div>
+        </form>
+        </div>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Última extracción</div>
+        <div class="since-value" id="e-since">—</div>
+      </div>
+
+      <div class="subtabs">
+        <button class="subtab active" data-sub="extra-historial">Historial</button>
+        <button class="subtab" data-sub="extra-resumen">Resumen</button>
+      </div>
+
+      <div class="subpanel active" id="sub-extra-historial">
+        <div class="card">
+          <div class="list-head">
+            <h2>Historial de extracciones</h2>
+            <button type="button" class="primary" id="e-new">+ Nueva extracción</button>
+          </div>
+          <div class="pager" id="e-pager"></div>
+          <div id="e-list"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" id="sub-extra-resumen">
+        <div class="card">
+          <div class="list-head">
+            <h2>Resumen por día</h2>
+          </div>
+          <div id="e-resumen"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PAÑALES ===================== -->
+    <section class="panel" id="panel-panales">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">🧷 Pañales</h2>
+      </div>
+
+      <div class="modal-overlay" id="pa-modal" hidden>
+        <div class="modal-box card">
+        <h2 id="pa-titulo">Nuevo pañal</h2>
+        <form id="form-panal">
+          <div class="field">
+            <label for="pa-fecha">Fecha</label>
+            <input type="date" id="pa-fecha" required>
+          </div>
+
+          <div class="field">
+            <label>Tipo</label>
+            <div class="segmented">
+              <input type="radio" name="pa-tipo" id="pa-tipo-caca" value="caca">
+              <label for="pa-tipo-caca">💩 Caca</label>
+              <input type="radio" name="pa-tipo" id="pa-tipo-pis" value="pis">
+              <label for="pa-tipo-pis">💧 Pis</label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary" id="pa-submit">Guardar pañal</button>
+            <button type="button" class="secondary" id="pa-cancel">Cancelar</button>
+          </div>
+          <button type="button" class="btn-danger" id="pa-delete" hidden>Eliminar</button>
+        </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Historial de pañales</h2>
+          <button type="button" class="primary" id="pa-new">+ Nuevo pañal</button>
+        </div>
+        <div id="pa-list"></div>
+      </div>
+    </section>
+
+    <!-- ===================== SUEÑO ===================== -->
+    <section class="panel" id="panel-sueno">
+      <div class="subtabs">
+        <button class="subtab active" data-sub="cristina">Cristina</button>
+        <button class="subtab" data-sub="fernando">Fernando</button>
+      </div>
+
+      <!-- Cristina -->
+      <div class="subpanel active" id="sub-cristina">
+        <div class="card">
+          <h2 id="sc-titulo">Nuevo periodo</h2>
+          <form id="sc-form">
+            <div class="row">
+              <div class="field">
+                <label for="sc-fecha-inicio">Fecha de inicio</label>
+                <input type="date" id="sc-fecha-inicio" required>
+              </div>
+              <div class="field">
+                <label for="sc-inicio">Hora de inicio</label>
+                <input type="time" id="sc-inicio" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="sc-fecha-fin">Fecha de fin <span class="opt">(opcional)</span></label>
+                <input type="date" id="sc-fecha-fin">
+              </div>
+              <div class="field">
+                <label for="sc-fin">Hora de fin <span class="opt">(opcional)</span></label>
+                <input type="time" id="sc-fin">
+              </div>
+            </div>
+            <p class="hint">Si dejas el fin en blanco, el periodo quedará como «Actualmente dormida». Podrás editarlo más tarde para cerrarlo.</p>
+            <div class="form-actions">
+              <button type="submit" class="primary" id="sc-submit">Guardar periodo</button>
+              <button type="button" class="secondary" id="sc-cancel" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="list-head">
+            <h2>Historial de sueño</h2>
+            <div class="total" id="sc-total"></div>
+          </div>
+          <div id="sc-list"></div>
+        </div>
+      </div>
+
+      <!-- Fernando -->
+      <div class="subpanel" id="sub-fernando">
+        <div class="card">
+          <h2 id="sf-titulo">Nuevo periodo</h2>
+          <form id="sf-form">
+            <div class="row">
+              <div class="field">
+                <label for="sf-fecha-inicio">Fecha de inicio</label>
+                <input type="date" id="sf-fecha-inicio" required>
+              </div>
+              <div class="field">
+                <label for="sf-inicio">Hora de inicio</label>
+                <input type="time" id="sf-inicio" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="sf-fecha-fin">Fecha de fin <span class="opt">(opcional)</span></label>
+                <input type="date" id="sf-fecha-fin">
+              </div>
+              <div class="field">
+                <label for="sf-fin">Hora de fin <span class="opt">(opcional)</span></label>
+                <input type="time" id="sf-fin">
+              </div>
+            </div>
+            <p class="hint">Si dejas el fin en blanco, el periodo quedará como «Actualmente dormida». Podrás editarlo más tarde para cerrarlo.</p>
+            <div class="form-actions">
+              <button type="submit" class="primary" id="sf-submit">Guardar periodo</button>
+              <button type="button" class="secondary" id="sf-cancel" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="list-head">
+            <h2>Historial de sueño</h2>
+            <div class="total" id="sf-total"></div>
+          </div>
+          <div id="sf-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PARACETAMOL ===================== -->
+    <section class="panel" id="panel-paracetamol">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">💊 Paracetamol</h2>
+      </div>
+
+      <div class="modal-overlay" id="pc-modal" hidden>
+        <div class="modal-box card">
+        <h2 id="pc-titulo">Nueva ingesta</h2>
+        <form id="pc-form">
+          <div class="row">
+            <div class="field">
+              <label for="pc-fecha">Fecha</label>
+              <input type="date" id="pc-fecha" required>
+            </div>
+            <div class="field">
+              <label for="pc-hora">Hora</label>
+              <input type="time" id="pc-hora" required>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary" id="pc-submit">Guardar ingesta</button>
+            <button type="button" class="secondary" id="pc-cancel">Cancelar</button>
+          </div>
+        </form>
+        </div>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Desde la última ingesta</div>
+        <div class="since-value" id="pc-since">—</div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Historial de ingestas</h2>
+          <button type="button" class="primary" id="pc-new">+ Nueva ingesta</button>
+        </div>
+        <div id="pc-list"></div>
+      </div>
+    </section>
+
+        <!-- ===================== AJUSTES ===================== -->
+        <div class="modal-overlay" id="settings-modal" hidden>
+          <div class="modal-box card">
+            <h2>Ajustes</h2>
+            <div class="field">
+              <label>Copia de seguridad</label>
+              <p class="hint">Exporta todos tus datos a un archivo, o impórtalos desde uno guardado previamente.</p>
+            </div>
+            <div class="settings-actions">
+              <button type="button" class="primary" id="export-btn">⬇️ Exportar datos</button>
+              <button type="button" class="primary" id="import-btn">⬆️ Importar datos</button>
+              <button type="button" class="secondary" id="settings-close">Cerrar</button>
+            </div>
+            <div class="logout-row">
+              <span class="hint" id="session-email"></span>
+              <button type="button" class="secondary" id="logout-btn">Cerrar sesión</button>
+            </div>
+            <input type="file" id="import-file" accept="application/json,.json" hidden>
+          </div>
+        </div>
+
+        <div id="status" class="status"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+    // --- Firebase (mismo proyecto que la app de tareas) ---
+    // Los datos de lactancia viven en la ruta "lactancia" para no mezclarse
+    // con los de tareas. Todas las cuentas con login comparten estos datos.
+    const firebaseConfig = {
+      apiKey: "AIzaSyDEBCJbasCSAH_o6L-VR63LLxoL9IM9BWk",
+      authDomain: "app-tareas-f38e5.firebaseapp.com",
+      databaseURL: "https://app-tareas-f38e5-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "app-tareas-f38e5",
+      storageBucket: "app-tareas-f38e5.firebasestorage.app",
+      messagingSenderId: "991941627960",
+      appId: "1:991941627960:web:7a6eeedda963354e3596cd"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const fdb = firebase.database();
+    const fauth = firebase.auth();
+    const FB_ROOT = "lactancia"; // ruta raíz de esta app dentro de la base de datos
+
+    // --- Captura visible de errores: si algo falla, lo muestra en pantalla ---
+    function showError(msg) {
+      const el = document.getElementById("status");
+      if (el) {
+        el.textContent = "⚠️ Error: " + msg;
+        el.className = "status err";
+      }
+    }
+    window.addEventListener("error", function (ev) {
+      showError((ev.message || "desconocido") + " (línea " + ev.lineno + ")");
+    });
+    window.addEventListener("unhandledrejection", function (ev) {
+      showError("promesa: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason));
+    });
+
+    const KEY_TOMAS = "tomas-bebe";
+    const KEY_EXTRA = "extracciones-bebe";
+    const KEY_SUENO_C = "sueno-cristina";
+    const KEY_SUENO_F = "sueno-fernando";
+    const KEY_PARACETAMOL = "paracetamol";
+    const KEY_PANALES = "panales-bebe";
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES];
+    const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
+
+    /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
+       Usamos IndexedDB en vez de localStorage porque todos los archivos
+       abiertos con file:// comparten un mismo localStorage de ~5 MB, y otra
+       app local puede llenarlo. IndexedDB tiene un límite mucho mayor.
+       Mantenemos una caché en memoria para que el resto del código siga
+       siendo síncrono (load/save no cambian de forma de uso). */
+    const DB_NAME = "registro-bebe";
+    const STORE = "kv";
+    let db = null;
+    let fbReady = false;     // true cuando Firebase está autenticado y escuchando
+    let appStarted = false;  // evita arrancar la app dos veces
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [] };
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    function idbGet(key) {
+      return new Promise((resolve) => {
+        const req = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(undefined);
+      });
+    }
+    function idbSet(key, value) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function load(key) {
+      return cache[key] || [];
+    }
+    function save(key, data) {
+      cache[key] = data;
+      // Respaldo local (IndexedDB): funciona sin conexión y al instante
+      if (db) {
+        idbSet(key, data).catch((e) => showError("al guardar: " + (e && e.message)));
+      }
+      // Nube (Firebase): se sincroniza entre dispositivos. Si no hay conexión,
+      // Firebase encola la escritura y la envía al recuperarla.
+      if (fbReady) {
+        fdb.ref(FB_ROOT + "/" + key).set(data && data.length ? data : null)
+          .catch((e) => showError("al sincronizar: " + (e && e.message)));
+      }
+    }
+
+    function updateStatus() {
+      const el = document.getElementById("status");
+      const nT = cache[KEY_TOMAS].length;
+      const nE = cache[KEY_EXTRA].length;
+      if (db) {
+        const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
+        el.textContent = `✓ v33 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.className = "status ok";
+      } else {
+        el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
+        el.className = "status err";
+      }
+    }
+    function newId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+    function todayStr() {
+      const d = new Date();
+      const off = d.getTimezoneOffset();
+      return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+    }
+    function nowTimeStr() {
+      return new Date().toTimeString().slice(0, 5);
+    }
+    function yesterdayStr() {
+      const yd = new Date();
+      yd.setDate(yd.getDate() - 1);
+      const off = yd.getTimezoneOffset();
+      return new Date(yd.getTime() - off * 60000).toISOString().slice(0, 10);
+    }
+    function formatDay(fecha) {
+      if (fecha === todayStr()) return "Hoy";
+      if (fecha === yesterdayStr()) return "Ayer";
+      const [y, m, d] = fecha.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString("es-ES", {
+        weekday: "long", day: "numeric", month: "long"
+      });
+    }
+    // Formato "26 Junio" (día y mes en palabra)
+    function formatDayMes(fecha) {
+      if (fecha === todayStr()) return "Hoy";
+      if (fecha === yesterdayStr()) return "Ayer";
+      const [y, m, d] = fecha.split("-").map(Number);
+      const mes = new Date(y, m - 1, d).toLocaleDateString("es-ES", { month: "long" });
+      return `${d} ${mes.charAt(0).toUpperCase() + mes.slice(1)}`;
+    }
+    // Formato corto "24 Jun 2026" (con Hoy/Ayer)
+    function formatDayShort(fecha) {
+      if (fecha === todayStr()) return "Hoy";
+      if (fecha === yesterdayStr()) return "Ayer";
+      const [y, m, d] = fecha.split("-").map(Number);
+      const mes = new Date(y, m - 1, d)
+        .toLocaleDateString("es-ES", { month: "short" })
+        .replace(".", "");
+      return `${d} ${mes.charAt(0).toUpperCase() + mes.slice(1)} ${y}`;
+    }
+    function formatDuracion(min) {
+      const n = Number(min);
+      if (n < 60) return n + " min";
+      const h = Math.floor(n / 60);
+      const r = n % 60;
+      return r ? `${h} h ${r} min` : `${h} h`;
+    }
+    // Suma n días a una fecha "YYYY-MM-DD" y devuelve otra "YYYY-MM-DD"
+    function addDays(dateStr, n) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const dt = new Date(y, m - 1, d + n);
+      const off = dt.getTimezoneOffset();
+      return new Date(dt.getTime() - off * 60000).toISOString().slice(0, 10);
+    }
+    // Minutos dormidos de un periodo; null si aún está abierto (sin fin)
+    function suenoMinutos(p) {
+      if (!p.fechaFin || !p.fin) return null;
+      const start = new Date(`${p.fechaInicio}T${p.inicio}`);
+      const end = new Date(`${p.fechaFin}T${p.fin}`);
+      const ms = end - start;
+      return ms > 0 ? Math.round(ms / 60000) : 0;
+    }
+    // Días de diferencia entre dos fechas "YYYY-MM-DD"
+    function diffDias(a, b) {
+      return Math.round((new Date(b + "T00:00") - new Date(a + "T00:00")) / 86400000);
+    }
+    // Tiempo transcurrido desde la toma anterior, p. ej. "Después de 3h y 7 min"
+    function formatGap(ms) {
+      let min = Math.round(ms / 60000);
+      if (min < 0) min = 0;
+      const d = Math.floor(min / 1440);
+      const h = Math.floor((min % 1440) / 60);
+      const m = min % 60;
+      const parts = [];
+      if (d) parts.push(d + (d === 1 ? " día" : " días"));
+      if (h) parts.push(h + "h");
+      if (m || parts.length === 0) parts.push(m + " min");
+      return "Después de " + parts.join(" ");
+    }
+    // Intervalo sin prefijo, p. ej. "3h y 7 min"
+    function formatIntervalo(ms) {
+      let min = Math.round(ms / 60000);
+      if (min < 0) min = 0;
+      const d = Math.floor(min / 1440);
+      const h = Math.floor((min % 1440) / 60);
+      const m = min % 60;
+      const parts = [];
+      if (d) parts.push(d + (d === 1 ? " día" : " días"));
+      if (h) parts.push(h + "h");
+      if (m || parts.length === 0) parts.push(m + " min");
+      return parts.join(" ");
+    }
+    // Tiempo transcurrido hasta ahora, p. ej. "Hace 2h y 15 min"
+    function formatElapsed(ms) {
+      let min = Math.floor(ms / 60000);
+      if (min < 1) return "Hace menos de 1 min";
+      const d = Math.floor(min / 1440);
+      const h = Math.floor((min % 1440) / 60);
+      const m = min % 60;
+      const parts = [];
+      if (d) parts.push(d + (d === 1 ? " día" : " días"));
+      if (h) parts.push(h + "h");
+      if (m && !d) parts.push(m + " min");
+      if (parts.length === 0) parts.push(m + " min");
+      return "Hace " + parts.join(" ");
+    }
+
+    /* ---------- Pestañas ---------- */
+    function activateTab(panel) {
+      const tab = document.querySelector('.tab[data-panel="' + panel + '"]');
+      const target = document.getElementById("panel-" + panel);
+      if (!tab || !target) return;
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      target.classList.add("active");
+    }
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        if (!tab.dataset.panel) return; // p. ej. el botón de Ajustes no cambia de panel
+        activateTab(tab.dataset.panel);
+        if (db) idbSet(KEY_UI_TAB, tab.dataset.panel).catch(() => {});
+        setMenuOpen(false); // cerrar el menú móvil al elegir pestaña
+      });
+    });
+
+    /* ---------- Menú móvil ---------- */
+    const menuToggle = document.getElementById("menu-toggle");
+    const menuClose = document.getElementById("menu-close");
+    function setMenuOpen(open) {
+      document.body.classList.toggle("menu-open", open);
+      menuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    menuToggle.addEventListener("click", () => setMenuOpen(!document.body.classList.contains("menu-open")));
+    menuClose.addEventListener("click", () => setMenuOpen(false));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.body.classList.contains("menu-open")) setMenuOpen(false);
+    });
+
+    /* ===================== TOMAS ===================== */
+    const formToma = document.getElementById("form-toma");
+    const tFecha = document.getElementById("t-fecha");
+    const tHora = document.getElementById("t-hora");
+    const tMaterna = document.getElementById("t-materna");
+    const tFormula = document.getElementById("t-formula");
+    const tList = document.getElementById("t-list");
+    const tTitulo = document.getElementById("t-titulo");
+    const tSubmit = document.getElementById("t-submit");
+    const tCancel = document.getElementById("t-cancel");
+    const tNew = document.getElementById("t-new");
+    const tModal = document.getElementById("t-modal");
+    let editTomaId = null;
+    let tomaDay = null; // día (fecha) que se muestra en el historial paginado
+
+    // ml por tipo, compatible con tomas antiguas ({cantidad, tipo}) y nuevas ({mlMaterna, mlFormula})
+    function tomaMaterna(t) {
+      if (t.mlMaterna != null || t.mlFormula != null) return Number(t.mlMaterna) || 0;
+      return t.tipo === "materna" ? Number(t.cantidad) || 0 : 0;
+    }
+    function tomaFormula(t) {
+      if (t.mlMaterna != null || t.mlFormula != null) return Number(t.mlFormula) || 0;
+      return t.tipo === "formula" ? Number(t.cantidad) || 0 : 0;
+    }
+    function tomaTotal(t) { return tomaMaterna(t) + tomaFormula(t); }
+
+    function setTomaDefaults() {
+      tFecha.value = todayStr();
+      tHora.value = nowTimeStr();
+    }
+
+    function closeTomaModal() {
+      tModal.hidden = true;
+      editTomaId = null;
+    }
+
+    function openTomaNew() {
+      editTomaId = null;
+      tTitulo.textContent = "Nueva toma";
+      tSubmit.textContent = "Guardar toma";
+      tMaterna.value = "";
+      tFormula.value = "";
+      setTomaDefaults();
+      tModal.hidden = false;
+      tMaterna.focus();
+    }
+
+    function startTomaEdit(id) {
+      const toma = load(KEY_TOMAS).find(t => t.id === id);
+      if (!toma) return;
+      editTomaId = id;
+      tFecha.value = toma.fecha;
+      tHora.value = toma.hora;
+      const m = tomaMaterna(toma), f = tomaFormula(toma);
+      tMaterna.value = m ? m : "";
+      tFormula.value = f ? f : "";
+      tTitulo.textContent = "Editar toma";
+      tSubmit.textContent = "Actualizar toma";
+      tModal.hidden = false;
+      tMaterna.focus();
+    }
+
+    function updateTomaSince() {
+      const el = document.getElementById("t-since");
+      if (!el) return;
+      const tomas = load(KEY_TOMAS);
+      if (tomas.length === 0) {
+        el.textContent = "Aún no hay tomas";
+        el.classList.add("muted");
+        return;
+      }
+      el.classList.remove("muted");
+      let latest = null;
+      for (const t of tomas) {
+        const dt = new Date(`${t.fecha}T${t.hora}`);
+        if (!latest || dt > latest) latest = dt;
+      }
+      const ms = Date.now() - latest.getTime();
+      el.textContent = formatElapsed(ms < 0 ? 0 : ms);
+    }
+
+    function renderTomasResumen() {
+      const el = document.getElementById("t-resumen");
+      if (!el) return;
+      const tomas = load(KEY_TOMAS);
+      if (tomas.length === 0) {
+        el.innerHTML = '<div class="empty">Aún no hay tomas registradas.</div>';
+        return;
+      }
+      const groups = {};
+      for (const t of tomas) (groups[t.fecha] = groups[t.fecha] || []).push(t);
+
+      // Promedio del intervalo entre tomas por día (cada toma respecto a la anterior)
+      const sorted = tomas.slice().sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+      const gapAcum = {};
+      for (let i = 1; i < sorted.length; i++) {
+        const cur = new Date(`${sorted[i].fecha}T${sorted[i].hora}`);
+        const prev = new Date(`${sorted[i - 1].fecha}T${sorted[i - 1].hora}`);
+        const f = sorted[i].fecha;
+        const acc = (gapAcum[f] = gapAcum[f] || { sum: 0, n: 0 });
+        acc.sum += cur - prev;
+        acc.n++;
+      }
+
+      let html = "";
+      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+        const items = groups[fecha];
+        const mlMaterna = items.reduce((s, t) => s + tomaMaterna(t), 0);
+        const mlFormula = items.reduce((s, t) => s + tomaFormula(t), 0);
+        const totalMl = mlMaterna + mlFormula;
+        const count = items.length;
+        const pctMaterna = totalMl ? Math.round((mlMaterna / totalMl) * 100) : 0;
+        const pctFormula = totalMl ? 100 - pctMaterna : 0;
+        const gp = gapAcum[fecha];
+        const avgGap = gp && gp.n ? formatIntervalo(gp.sum / gp.n) : null;
+
+        html += `<div class="resumen-dia">
+          <div class="resumen-head">
+            <div class="resumen-fecha">${formatDayMes(fecha)}</div>
+            <div class="resumen-stats">
+              <span class="stat-val">${totalMl} ml</span>
+              <span class="stat-val">${count} ${count === 1 ? "toma" : "tomas"}</span>
+              ${avgGap ? `<span class="stat-val">Cada ${avgGap}</span>` : ""}
+            </div>
+          </div>
+          <div class="pct-bar">
+            <div class="pct-materna" style="width:${pctMaterna}%"></div>
+            <div class="pct-formula" style="width:${pctFormula}%"></div>
+          </div>
+          <div class="pct-legend">
+            <span>Materna ${pctMaterna}% · ${mlMaterna} ml</span>
+            <span>Fórmula ${pctFormula}% · ${mlFormula} ml</span>
+          </div>
+        </div>`;
+      }
+      el.innerHTML = html;
+    }
+
+    function renderTomas() {
+      updateTomaSince();
+      renderTomasResumen();
+      const tomas = load(KEY_TOMAS);
+      if (tomas.length === 0) {
+        tList.innerHTML = '<div class="empty">Aún no hay tomas registradas.</div>';
+        const pg = document.getElementById("t-pager");
+        if (pg) pg.innerHTML = "";
+        return;
+      }
+      tomas.sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+
+      // Intervalo respecto a la toma anterior (la siguiente en la lista descendente)
+      const gapById = {};
+      for (let i = 0; i < tomas.length - 1; i++) {
+        const cur = new Date(`${tomas[i].fecha}T${tomas[i].hora}`);
+        const prev = new Date(`${tomas[i + 1].fecha}T${tomas[i + 1].hora}`);
+        gapById[tomas[i].id] = formatGap(cur - prev);
+      }
+
+      const groups = {};
+      for (const t of tomas) (groups[t.fecha] = groups[t.fecha] || []).push(t);
+
+      // Paginación: se muestra un día por página
+      const fechas = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+      if (!fechas.includes(tomaDay)) tomaDay = fechas[0];
+      const idx = fechas.indexOf(tomaDay);
+
+      const fecha = tomaDay;
+      const items = groups[fecha];
+      const totalDia = items.reduce((s, t) => s + tomaTotal(t), 0);
+      const byline = `${totalDia} ml · ${items.length} ${items.length === 1 ? "toma" : "tomas"}`;
+      renderTomaPager(fechas, idx, byline);
+
+      let html = `<div class="day-group">`;
+      for (const t of items) {
+        const m = tomaMaterna(t), f = tomaFormula(t);
+        const gap = gapById[t.id];
+        const parts = [];
+        if (m > 0) parts.push(`<span class="tipo-linea"><span class="dot materna"></span>Materna ${m} ml</span>`);
+        if (f > 0) parts.push(`<span class="tipo-linea"><span class="dot formula"></span>Fórmula ${f} ml</span>`);
+        const info = parts.join("");
+        html += `<div class="toma">
+            <div class="toma-info">
+              <div class="toma-time">${t.hora}</div>
+              <div class="toma-type">${info}</div>
+              ${gap ? `<div class="toma-gap"><span class="gap">${gap}</span></div>` : ""}
+            </div>
+            <div class="toma-amount">${m + f} ml</div>
+            <button class="edit" data-id="${t.id}" title="Editar" aria-label="Editar toma">✎</button>
+            <button class="del" data-id="${t.id}" title="Eliminar" aria-label="Eliminar toma">✕</button>
+          </div>`;
+      }
+      html += "</div>";
+      tList.innerHTML = html;
+    }
+
+    function renderTomaPager(fechas, idx, byline) {
+      const el = document.getElementById("t-pager");
+      if (!el) return;
+      const atNewest = idx <= 0;
+      const atOldest = idx >= fechas.length - 1;
+      el.innerHTML =
+        `<button class="pager-btn" data-dir="older" title="Día anterior" aria-label="Día anterior" ${atOldest ? "disabled" : ""}>❮</button>` +
+        `<div class="pager-center">` +
+          `<span class="pager-label">${formatDayShort(fechas[idx])}</span>` +
+          `<span class="pager-byline">${byline}</span>` +
+        `</div>` +
+        `<button class="pager-btn" data-dir="newer" title="Día siguiente" aria-label="Día siguiente" ${atNewest ? "disabled" : ""}>❯</button>`;
+    }
+
+    formToma.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const mlMaterna = Number(tMaterna.value) || 0;
+      const mlFormula = Number(tFormula.value) || 0;
+      if (mlMaterna <= 0 && mlFormula <= 0) {
+        alert("Introduce una cantidad de materna o de fórmula.");
+        return;
+      }
+      const datos = {
+        fecha: tFecha.value,
+        hora: tHora.value,
+        mlMaterna,
+        mlFormula
+      };
+      const tomas = load(KEY_TOMAS);
+      if (editTomaId) {
+        const t = tomas.find(t => t.id === editTomaId);
+        if (t) {
+          Object.assign(t, datos);
+          delete t.cantidad;
+          delete t.tipo;
+        }
+        save(KEY_TOMAS, tomas);
+      } else {
+        tomas.push(Object.assign({ id: newId() }, datos));
+        save(KEY_TOMAS, tomas);
+      }
+      tomaDay = datos.fecha; // mostrar el día de la toma creada/editada
+      closeTomaModal();
+      renderTomas();
+      updateStatus();
+    });
+
+    document.getElementById("t-pager").addEventListener("click", (e) => {
+      const btn = e.target.closest(".pager-btn");
+      if (!btn || btn.disabled) return;
+      const fechas = [...new Set(load(KEY_TOMAS).map(t => t.fecha))].sort((a, b) => b.localeCompare(a));
+      let idx = fechas.indexOf(tomaDay);
+      if (idx < 0) idx = 0;
+      idx = btn.dataset.dir === "older"
+        ? Math.min(idx + 1, fechas.length - 1)
+        : Math.max(idx - 1, 0);
+      tomaDay = fechas[idx];
+      renderTomas();
+    });
+
+    tNew.addEventListener("click", openTomaNew);
+    tCancel.addEventListener("click", closeTomaModal);
+    // Cerrar al pulsar fuera de la tarjeta (en el fondo oscuro)
+    tModal.addEventListener("click", (e) => {
+      if (e.target === tModal) closeTomaModal();
+    });
+    // Cerrar con la tecla Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !tModal.hidden) closeTomaModal();
+    });
+
+    tList.addEventListener("click", (e) => {
+      const editBtn = e.target.closest(".edit");
+      if (editBtn) { startTomaEdit(editBtn.dataset.id); return; }
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta toma?")) return;
+      save(KEY_TOMAS, load(KEY_TOMAS).filter(t => t.id !== btn.dataset.id));
+      renderTomas();
+      updateStatus();
+    });
+
+    /* ===================== EXTRACCIONES ===================== */
+    const formExtra = document.getElementById("form-extra");
+    const eFecha = document.getElementById("e-fecha");
+    const eHora = document.getElementById("e-hora");
+    const eDuracion = document.getElementById("e-duracion");
+    const eMl = document.getElementById("e-ml");
+    const eIncompleto = document.getElementById("e-incompleto");
+    const eList = document.getElementById("e-list");
+    const eTitulo = document.getElementById("e-titulo");
+    const eSubmit = document.getElementById("e-submit");
+    const eCancel = document.getElementById("e-cancel");
+    const eNew = document.getElementById("e-new");
+    const eModal = document.getElementById("e-modal");
+    let editExtraId = null;
+    let extraDay = null; // día (fecha) que se muestra en el historial paginado
+
+    function setExtraDefaults() {
+      eFecha.value = todayStr();
+      eHora.value = nowTimeStr();
+    }
+
+    function closeExtraModal() {
+      eModal.hidden = true;
+      editExtraId = null;
+    }
+
+    function openExtraNew() {
+      editExtraId = null;
+      eTitulo.textContent = "Nueva extracción";
+      eSubmit.textContent = "Guardar extracción";
+      eDuracion.value = "";
+      eMl.value = "";
+      eIncompleto.checked = false;
+      setExtraDefaults();
+      eModal.hidden = false;
+      eDuracion.focus();
+    }
+
+    function startExtraEdit(id) {
+      const ex = load(KEY_EXTRA).find(x => x.id === id);
+      if (!ex) return;
+      editExtraId = id;
+      eFecha.value = ex.fecha;
+      eHora.value = ex.hora;
+      eDuracion.value = ex.duracion;
+      eMl.value = ex.ml != null && ex.ml !== "" ? ex.ml : "";
+      eIncompleto.checked = !!ex.incompleto;
+      eTitulo.textContent = "Editar extracción";
+      eSubmit.textContent = "Actualizar extracción";
+      eModal.hidden = false;
+      eDuracion.focus();
+    }
+
+    function updateExtraSince() {
+      const el = document.getElementById("e-since");
+      if (!el) return;
+      const extras = load(KEY_EXTRA);
+      if (extras.length === 0) {
+        el.textContent = "Aún no hay extracciones";
+        el.classList.add("muted");
+        return;
+      }
+      el.classList.remove("muted");
+      let latest = null;
+      for (const x of extras) {
+        const dt = new Date(`${x.fecha}T${x.hora}`);
+        if (!latest || dt > latest) latest = dt;
+      }
+      const ms = Date.now() - latest.getTime();
+      el.textContent = formatElapsed(ms < 0 ? 0 : ms);
+    }
+
+    function renderExtraResumen() {
+      const el = document.getElementById("e-resumen");
+      if (!el) return;
+      const extras = load(KEY_EXTRA);
+      if (extras.length === 0) {
+        el.innerHTML = '<div class="empty">Aún no hay extracciones registradas.</div>';
+        return;
+      }
+      const groups = {};
+      for (const x of extras) (groups[x.fecha] = groups[x.fecha] || []).push(x);
+
+      let html = "";
+      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+        const count = groups[fecha].length;
+        html += `<div class="resumen-dia">
+          <div class="resumen-fecha">${formatDay(fecha)}</div>
+          <div class="resumen-stats">
+            <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
+          </div>
+        </div>`;
+      }
+      el.innerHTML = html;
+    }
+
+    function renderExtra() {
+      updateExtraSince();
+      renderExtraResumen();
+      const extras = load(KEY_EXTRA);
+      if (extras.length === 0) {
+        eList.innerHTML = '<div class="empty">Aún no hay extracciones registradas.</div>';
+        const pg = document.getElementById("e-pager");
+        if (pg) pg.innerHTML = "";
+        return;
+      }
+      extras.sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+
+      // Intervalo respecto a la extracción anterior (la siguiente en la lista descendente)
+      const gapById = {};
+      for (let i = 0; i < extras.length - 1; i++) {
+        const cur = new Date(`${extras[i].fecha}T${extras[i].hora}`);
+        const prev = new Date(`${extras[i + 1].fecha}T${extras[i + 1].hora}`);
+        gapById[extras[i].id] = formatGap(cur - prev);
+      }
+
+      const groups = {};
+      for (const x of extras) (groups[x.fecha] = groups[x.fecha] || []).push(x);
+
+      // Paginación: se muestra un día por página
+      const fechas = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+      if (!fechas.includes(extraDay)) extraDay = fechas[0];
+      const idx = fechas.indexOf(extraDay);
+
+      const items = groups[extraDay];
+      const totalMl = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
+      const incompleta = items.some(x => x.incompleto || !(Number(x.ml) > 0));
+      const byline = `${items.length} ${items.length === 1 ? "extracción" : "extracciones"} · ${totalMl} ml${incompleta ? " (incompleta)" : ""}`;
+      renderExtraPager(fechas, idx, byline);
+
+      let html = `<div class="day-group">`;
+      for (const x of items) {
+        html += `<div class="toma">
+            <div class="toma-info">
+              <div class="toma-time">${x.hora}</div>
+              <div class="toma-dur">${formatDuracion(x.duracion)}</div>
+              <div class="toma-type">${gapById[x.id] ? `<span class="accent">${gapById[x.id]}</span>` : "Extracción"}</div>
+            </div>
+            <div class="toma-amount">${x.ml ? `${x.incompleto ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${x.ml} ml` : ""}</div>
+            <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar extracción">✎</button>
+            <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar extracción">✕</button>
+          </div>`;
+      }
+      html += "</div>";
+      eList.innerHTML = html;
+    }
+
+    function renderExtraPager(fechas, idx, byline) {
+      const el = document.getElementById("e-pager");
+      if (!el) return;
+      const atNewest = idx <= 0;
+      const atOldest = idx >= fechas.length - 1;
+      el.innerHTML =
+        `<button class="pager-btn" data-dir="older" title="Día anterior" aria-label="Día anterior" ${atOldest ? "disabled" : ""}>❮</button>` +
+        `<div class="pager-center">` +
+          `<span class="pager-label">${formatDayShort(fechas[idx])}</span>` +
+          `<span class="pager-byline">${byline}</span>` +
+        `</div>` +
+        `<button class="pager-btn" data-dir="newer" title="Día siguiente" aria-label="Día siguiente" ${atNewest ? "disabled" : ""}>❯</button>`;
+    }
+
+    formExtra.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const datos = {
+        fecha: eFecha.value,
+        hora: eHora.value,
+        duracion: eDuracion.value,
+        ml: Number(eMl.value) || 0,
+        incompleto: eIncompleto.checked
+      };
+      const extras = load(KEY_EXTRA);
+      if (editExtraId) {
+        const x = extras.find(x => x.id === editExtraId);
+        if (x) Object.assign(x, datos);
+        save(KEY_EXTRA, extras);
+      } else {
+        extras.push(Object.assign({ id: newId() }, datos));
+        save(KEY_EXTRA, extras);
+      }
+      extraDay = datos.fecha; // mostrar el día de la extracción creada/editada
+      closeExtraModal();
+      renderExtra();
+      updateStatus();
+    });
+
+    document.getElementById("e-pager").addEventListener("click", (e) => {
+      const btn = e.target.closest(".pager-btn");
+      if (!btn || btn.disabled) return;
+      const fechas = [...new Set(load(KEY_EXTRA).map(x => x.fecha))].sort((a, b) => b.localeCompare(a));
+      let idx = fechas.indexOf(extraDay);
+      if (idx < 0) idx = 0;
+      idx = btn.dataset.dir === "older"
+        ? Math.min(idx + 1, fechas.length - 1)
+        : Math.max(idx - 1, 0);
+      extraDay = fechas[idx];
+      renderExtra();
+    });
+
+    eNew.addEventListener("click", openExtraNew);
+    eCancel.addEventListener("click", closeExtraModal);
+    // Cerrar al pulsar fuera de la tarjeta (en el fondo oscuro)
+    eModal.addEventListener("click", (e) => {
+      if (e.target === eModal) closeExtraModal();
+    });
+    // Cerrar con la tecla Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !eModal.hidden) closeExtraModal();
+    });
+
+    eList.addEventListener("click", (e) => {
+      const editBtn = e.target.closest(".edit");
+      if (editBtn) { startExtraEdit(editBtn.dataset.id); return; }
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta extracción?")) return;
+      save(KEY_EXTRA, load(KEY_EXTRA).filter(x => x.id !== btn.dataset.id));
+      renderExtra();
+      updateStatus();
+    });
+
+    /* ===================== PAÑALES ===================== */
+    const formPanal = document.getElementById("form-panal");
+    const paFecha = document.getElementById("pa-fecha");
+    const paTipoCaca = document.getElementById("pa-tipo-caca");
+    const paTipoPis = document.getElementById("pa-tipo-pis");
+    const paList = document.getElementById("pa-list");
+    const paTitulo = document.getElementById("pa-titulo");
+    const paSubmit = document.getElementById("pa-submit");
+    const paCancel = document.getElementById("pa-cancel");
+    const paDelete = document.getElementById("pa-delete");
+    const paNew = document.getElementById("pa-new");
+    const paModal = document.getElementById("pa-modal");
+    const PIS_IMG = "data:image/png;base64,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"; // imagen de gota (pis), incrustada en base64
+
+    let editPanalId = null;
+
+    function setPanalDefaults() {
+      paFecha.value = todayStr();
+    }
+
+    function closePanalModal() {
+      paModal.hidden = true;
+      editPanalId = null;
+    }
+
+    function openPanalNew() {
+      editPanalId = null;
+      paTitulo.textContent = "Nuevo pañal";
+      paSubmit.textContent = "Guardar pañal";
+      paDelete.hidden = true;
+      paTipoCaca.checked = false;
+      paTipoPis.checked = false;
+      setPanalDefaults();
+      paModal.hidden = false;
+      paTipoCaca.focus();
+    }
+
+    function startPanalEdit(id, tipo) {
+      const it = load(KEY_PANALES).find(x => x.id === id);
+      if (!it) return;
+      editPanalId = id;
+      paFecha.value = it.fecha;
+      // Preselecciona el tipo del tile pulsado (o el de la propia entrada)
+      const t = tipo || (it.caca ? "caca" : "pis");
+      paTipoCaca.checked = t === "caca";
+      paTipoPis.checked = t === "pis";
+      paTitulo.textContent = "Editar pañal";
+      paSubmit.textContent = "Actualizar pañal";
+      paDelete.hidden = false;
+      paModal.hidden = false;
+      paTipoCaca.focus();
+    }
+
+    function renderPanal() {
+      const items = load(KEY_PANALES);
+      if (items.length === 0) {
+        paList.innerHTML = '<div class="empty">Aún no hay pañales registrados.</div>';
+        return;
+      }
+      items.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+      const groups = {};
+      for (const x of items) (groups[x.fecha] = groups[x.fecha] || []).push(x);
+
+      // Una tarjeta por día, con un item por cada caca/pis dentro
+      let html = "";
+      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+        const its = groups[fecha];
+        html += `<div class="resumen-dia">
+          <div class="resumen-fecha">${formatDayMes(fecha)}</div>`;
+        html += `<div class="panal-tiles">`;
+        // Primero todas las cacas del día, luego todos los pis
+        for (const x of its) {
+          if (x.caca) html += `<div class="panal-tile" data-id="${x.id}" data-tipo="caca" title="Editar"><span class="panal-ico">💩</span></div>`;
+        }
+        for (const x of its) {
+          if (x.pis) html += `<div class="panal-tile" data-id="${x.id}" data-tipo="pis" title="Editar"><img class="panal-ico-img" src="${PIS_IMG}" alt="Pis" width="30" height="30"></div>`;
+        }
+        html += `</div></div>`;
+      }
+      paList.innerHTML = html;
+    }
+
+    formPanal.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!paTipoCaca.checked && !paTipoPis.checked) {
+        alert("Elige «Caca» o «Pis».");
+        return;
+      }
+      const datos = {
+        fecha: paFecha.value,
+        caca: paTipoCaca.checked,
+        pis: paTipoPis.checked
+      };
+      const items = load(KEY_PANALES);
+      if (editPanalId) {
+        const it = items.find(x => x.id === editPanalId);
+        if (it) Object.assign(it, datos);
+        save(KEY_PANALES, items);
+      } else {
+        items.push(Object.assign({ id: newId() }, datos));
+        save(KEY_PANALES, items);
+      }
+      closePanalModal();
+      renderPanal();
+      updateStatus();
+    });
+
+    paNew.addEventListener("click", openPanalNew);
+    paCancel.addEventListener("click", closePanalModal);
+    paModal.addEventListener("click", (e) => { if (e.target === paModal) closePanalModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !paModal.hidden) closePanalModal();
+    });
+
+    // Click en un tile: abrir el modal de edición
+    paList.addEventListener("click", (e) => {
+      const tile = e.target.closest(".panal-tile");
+      if (tile) startPanalEdit(tile.dataset.id, tile.dataset.tipo);
+    });
+
+    // Eliminar desde el modal de edición
+    paDelete.addEventListener("click", () => {
+      if (!editPanalId) return;
+      if (!confirm("¿Eliminar este registro?")) return;
+      save(KEY_PANALES, load(KEY_PANALES).filter(x => x.id !== editPanalId));
+      closePanalModal();
+      renderPanal();
+      updateStatus();
+    });
+
+    /* ---------- Sub-pestañas (con ámbito local a su contenedor) ---------- */
+    document.querySelectorAll(".subtabs").forEach(group => {
+      const scope = group.parentElement; // contenedor con los .subtab y sus .subpanel
+      group.querySelectorAll(".subtab").forEach(st => {
+        st.addEventListener("click", () => {
+          group.querySelectorAll(".subtab").forEach(x => x.classList.remove("active"));
+          scope.querySelectorAll(".subpanel").forEach(p => p.classList.remove("active"));
+          st.classList.add("active");
+          document.getElementById("sub-" + st.dataset.sub).classList.add("active");
+        });
+      });
+    });
+
+    /* ===================== SUEÑO ===================== */
+
+    // Factory: monta el formulario e historial de sueño de una persona.
+    // key = clave de almacenamiento; p = prefijo de ids en el HTML (sc / sf).
+    function setupSueno(key, p) {
+      const form = document.getElementById(p + "-form");
+      const fFechaIni = document.getElementById(p + "-fecha-inicio");
+      const fInicio = document.getElementById(p + "-inicio");
+      const fFechaFin = document.getElementById(p + "-fecha-fin");
+      const fFin = document.getElementById(p + "-fin");
+      const list = document.getElementById(p + "-list");
+      const total = document.getElementById(p + "-total");
+      const titulo = document.getElementById(p + "-titulo");
+      const submit = document.getElementById(p + "-submit");
+      const cancel = document.getElementById(p + "-cancel");
+      let editId = null;
+
+      function setDefaults() {
+        fFechaIni.value = todayStr();
+        fInicio.value = nowTimeStr();
+      }
+
+      function clearForm() {
+        fInicio.value = "";
+        fFechaFin.value = "";
+        fFin.value = "";
+        setDefaults();
+      }
+
+      function exitEdit() {
+        editId = null;
+        titulo.textContent = "Nuevo periodo";
+        submit.textContent = "Guardar periodo";
+        cancel.hidden = true;
+        form.closest(".card").classList.remove("editing");
+        clearForm();
+      }
+
+      function startEdit(id) {
+        const per = load(key).find(x => x.id === id);
+        if (!per) return;
+        editId = id;
+        fFechaIni.value = per.fechaInicio;
+        fInicio.value = per.inicio;
+        fFechaFin.value = per.fechaFin || "";
+        fFin.value = per.fin || "";
+        titulo.textContent = "Editar periodo";
+        submit.textContent = "Actualizar periodo";
+        cancel.hidden = false;
+        form.closest(".card").classList.add("editing");
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Si está abierto, ayudamos a cerrarlo proponiendo fecha/hora actuales
+        if (!per.fin) {
+          fFechaFin.value = todayStr();
+          fFin.value = nowTimeStr();
+        }
+        fFin.focus();
+      }
+
+      function render() {
+        const periodos = load(key);
+        if (periodos.length === 0) {
+          list.innerHTML = '<div class="empty">Aún no hay periodos registrados.</div>';
+          total.textContent = "";
+          return;
+        }
+        periodos.sort((a, b) => (b.fechaInicio + b.inicio).localeCompare(a.fechaInicio + a.inicio));
+
+        const totalHoy = periodos
+          .filter(x => x.fechaInicio === todayStr())
+          .reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
+        total.innerHTML = `Hoy: <strong>${formatDuracion(totalHoy)}</strong>`;
+
+        const groups = {};
+        for (const x of periodos) (groups[x.fechaInicio] = groups[x.fechaInicio] || []).push(x);
+
+        let html = "";
+        for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+          const items = groups[fecha];
+          const totalDia = items.reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
+          html += `<div class="day-group">
+            <div class="day-label">
+              <span>${formatDay(fecha)}</span>
+              <span>${formatDuracion(totalDia)} · ${items.length} ${items.length === 1 ? "periodo" : "periodos"}</span>
+            </div>`;
+          for (const x of items) {
+            const min = suenoMinutos(x);
+            let derecha, tiempo;
+            if (min === null) {
+              tiempo = `${x.inicio} → …`;
+              derecha = `<span class="ongoing">🌙 Actualmente dormida</span>`;
+            } else {
+              const dias = x.fechaFin !== x.fechaInicio ? diffDias(x.fechaInicio, x.fechaFin) : 0;
+              tiempo = `${x.inicio} → ${x.fin}${dias ? ` <span class="opt">(+${dias} día${dias === 1 ? "" : "s"})</span>` : ""}`;
+              derecha = formatDuracion(min);
+            }
+            html += `<div class="toma">
+              <span class="dot sueno"></span>
+              <div class="toma-info">
+                <div class="toma-time">${tiempo}</div>
+                <div class="toma-type">${derecha}</div>
+              </div>
+              <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar periodo">✎</button>
+              <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar periodo">✕</button>
+            </div>`;
+          }
+          html += "</div>";
+        }
+        list.innerHTML = html;
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const fechaFin = fFechaFin.value;
+        const fin = fFin.value;
+        // El fin es opcional, pero si se indica uno hay que indicar el otro
+        if ((fechaFin && !fin) || (!fechaFin && fin)) {
+          alert("Para cerrar el periodo indica tanto la fecha como la hora de fin (o deja ambas en blanco).");
+          return;
+        }
+        if (fechaFin && fin) {
+          const inicioDt = new Date(`${fFechaIni.value}T${fInicio.value}`);
+          const finDt = new Date(`${fechaFin}T${fin}`);
+          if (finDt <= inicioDt) {
+            alert("La fecha y hora de fin deben ser posteriores al inicio.");
+            return;
+          }
+        }
+        const datos = {
+          fechaInicio: fFechaIni.value,
+          inicio: fInicio.value,
+          fechaFin: fechaFin,
+          fin: fin
+        };
+        const periodos = load(key);
+        if (editId) {
+          const per = periodos.find(x => x.id === editId);
+          if (per) Object.assign(per, datos);
+          save(key, periodos);
+          exitEdit();
+        } else {
+          periodos.push(Object.assign({ id: newId() }, datos));
+          save(key, periodos);
+          clearForm();
+        }
+        render();
+        updateStatus();
+      });
+
+      cancel.addEventListener("click", exitEdit);
+
+      list.addEventListener("click", (e) => {
+        const editBtn = e.target.closest(".edit");
+        if (editBtn) { startEdit(editBtn.dataset.id); return; }
+        const btn = e.target.closest(".del");
+        if (!btn) return;
+        if (!confirm("¿Eliminar este periodo?")) return;
+        if (editId === btn.dataset.id) exitEdit();
+        save(key, load(key).filter(x => x.id !== btn.dataset.id));
+        render();
+        updateStatus();
+      });
+
+      setDefaults();
+      return { render };
+    }
+
+    const suenoCristina = setupSueno(KEY_SUENO_C, "sc");
+    const suenoFernando = setupSueno(KEY_SUENO_F, "sf");
+
+    /* ===================== PARACETAMOL ===================== */
+    const formPc = document.getElementById("pc-form");
+    const pcFecha = document.getElementById("pc-fecha");
+    const pcHora = document.getElementById("pc-hora");
+    const pcList = document.getElementById("pc-list");
+    const pcTitulo = document.getElementById("pc-titulo");
+    const pcSubmit = document.getElementById("pc-submit");
+    const pcCancel = document.getElementById("pc-cancel");
+    const pcNew = document.getElementById("pc-new");
+    const pcModal = document.getElementById("pc-modal");
+    let editPcId = null;
+
+    function setPcDefaults() {
+      pcFecha.value = todayStr();
+      pcHora.value = nowTimeStr();
+    }
+    function closePcModal() {
+      pcModal.hidden = true;
+      editPcId = null;
+    }
+    function openPcNew() {
+      editPcId = null;
+      pcTitulo.textContent = "Nueva ingesta";
+      pcSubmit.textContent = "Guardar ingesta";
+      setPcDefaults();
+      pcModal.hidden = false;
+      pcHora.focus();
+    }
+    function startPcEdit(id) {
+      const it = load(KEY_PARACETAMOL).find(x => x.id === id);
+      if (!it) return;
+      editPcId = id;
+      pcFecha.value = it.fecha;
+      pcHora.value = it.hora;
+      pcTitulo.textContent = "Editar ingesta";
+      pcSubmit.textContent = "Actualizar ingesta";
+      pcModal.hidden = false;
+      pcHora.focus();
+    }
+    const PC_INTERVALO_MS = 8 * 60 * 60 * 1000; // 8 horas entre dosis
+
+    function updatePcSince() {
+      const el = document.getElementById("pc-since");
+      const navDot = document.getElementById("pc-nav-dot");
+      if (!el) return;
+      const items = load(KEY_PARACETAMOL);
+      if (items.length === 0) {
+        el.textContent = "Aún no hay ingestas";
+        el.className = "since-value muted";
+        if (navDot) navDot.hidden = true;
+        return;
+      }
+      let latest = null;
+      for (const x of items) {
+        const dt = new Date(`${x.fecha}T${x.hora}`);
+        if (!latest || dt > latest) latest = dt;
+      }
+      const ms = Math.max(0, Date.now() - latest.getTime());
+      el.textContent = formatElapsed(ms);
+      const puede = ms >= PC_INTERVALO_MS; // ya han pasado 8 h o más
+      el.className = "since-value " + (puede ? "ok-text" : "warn-text");
+      if (navDot) navDot.hidden = !puede;
+    }
+
+    function renderPc() {
+      updatePcSince();
+      const items = load(KEY_PARACETAMOL);
+      if (items.length === 0) {
+        pcList.innerHTML = '<div class="empty">Aún no hay ingestas registradas.</div>';
+        return;
+      }
+      items.sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+
+      // Intervalo respecto a la ingesta anterior (la siguiente en la lista descendente)
+      const gapById = {};
+      for (let i = 0; i < items.length - 1; i++) {
+        const cur = new Date(`${items[i].fecha}T${items[i].hora}`);
+        const prev = new Date(`${items[i + 1].fecha}T${items[i + 1].hora}`);
+        gapById[items[i].id] = formatGap(cur - prev);
+      }
+
+      const groups = {};
+      for (const x of items) (groups[x.fecha] = groups[x.fecha] || []).push(x);
+
+      let html = "";
+      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+        const its = groups[fecha];
+        html += `<div class="day-group">
+          <div class="day-label">
+            <span>${formatDay(fecha)}</span>
+            <span>${its.length} ${its.length === 1 ? "ingesta" : "ingestas"}</span>
+          </div>`;
+        for (const x of its) {
+          html += `<div class="toma">
+            <span class="dot med"></span>
+            <div class="toma-info">
+              <div class="toma-time">${x.hora}</div>
+              <div class="toma-type">${gapById[x.id] || "Paracetamol"}</div>
+            </div>
+            <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar ingesta">✎</button>
+            <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar ingesta">✕</button>
+          </div>`;
+        }
+        html += "</div>";
+      }
+      pcList.innerHTML = html;
+    }
+
+    formPc.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const datos = { fecha: pcFecha.value, hora: pcHora.value };
+      const items = load(KEY_PARACETAMOL);
+      if (editPcId) {
+        const it = items.find(x => x.id === editPcId);
+        if (it) Object.assign(it, datos);
+        save(KEY_PARACETAMOL, items);
+      } else {
+        items.push(Object.assign({ id: newId() }, datos));
+        save(KEY_PARACETAMOL, items);
+      }
+      closePcModal();
+      renderPc();
+      updateStatus();
+    });
+
+    pcNew.addEventListener("click", openPcNew);
+    pcCancel.addEventListener("click", closePcModal);
+    pcModal.addEventListener("click", (e) => { if (e.target === pcModal) closePcModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !pcModal.hidden) closePcModal();
+    });
+
+    pcList.addEventListener("click", (e) => {
+      const editBtn = e.target.closest(".edit");
+      if (editBtn) { startPcEdit(editBtn.dataset.id); return; }
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta ingesta?")) return;
+      save(KEY_PARACETAMOL, load(KEY_PARACETAMOL).filter(x => x.id !== btn.dataset.id));
+      renderPc();
+      updateStatus();
+    });
+
+    /* ===================== AJUSTES (exportar / importar) ===================== */
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const settingsClose = document.getElementById("settings-close");
+    const exportBtn = document.getElementById("export-btn");
+    const importBtn = document.getElementById("import-btn");
+    const importFile = document.getElementById("import-file");
+
+    function openSettings() {
+      settingsModal.hidden = false;
+      setMenuOpen(false); // por si el menú móvil estaba abierto
+    }
+    function closeSettings() {
+      settingsModal.hidden = true;
+    }
+
+    // Vuelve a pintar todas las pestañas tras una importación
+    function renderAll() {
+      renderTomas();
+      renderExtra();
+      suenoCristina.render();
+      suenoFernando.render();
+      renderPc();
+      renderPanal();
+      updateStatus();
+    }
+
+    async function exportData() {
+      const data = {};
+      for (const key of ALL_KEYS) data[key] = cache[key] || [];
+      const payload = {
+        app: "registro-bebe",
+        version: 32,
+        exportedAt: new Date().toISOString(),
+        data
+      };
+      const json = JSON.stringify(payload, null, 2);
+      const filename = `registro-bebe-${todayStr()}.json`;
+
+      // Navegadores compatibles (Chrome/Edge): deja elegir carpeta y nombre
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: "Archivo JSON", accept: { "application/json": [".json"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(json);
+          await writable.close();
+          return;
+        } catch (e) {
+          if (e && e.name === "AbortError") return; // el usuario canceló el diálogo
+          // cualquier otro fallo: caemos al método de descarga directa
+        }
+      }
+
+      // Respaldo: descarga directa a la carpeta de Descargas
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          const data = parsed && parsed.data ? parsed.data : parsed;
+          if (!data || typeof data !== "object") throw new Error("Formato no reconocido");
+          const claves = ALL_KEYS.filter(key => Array.isArray(data[key]));
+          if (claves.length === 0) throw new Error("El archivo no contiene datos válidos");
+          if (!confirm("Esto reemplazará los datos actuales por los del archivo. ¿Continuar?")) return;
+          for (const key of claves) save(key, data[key]);
+          renderAll();
+          closeSettings();
+          alert("Datos importados correctamente.");
+        } catch (e) {
+          alert("No se pudo importar: " + (e && e.message ? e.message : e));
+        }
+      };
+      reader.onerror = () => alert("No se pudo leer el archivo.");
+      reader.readAsText(file);
+    }
+
+    settingsBtn.addEventListener("click", openSettings);
+    settingsClose.addEventListener("click", closeSettings);
+    settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) closeSettings(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !settingsModal.hidden) closeSettings();
+    });
+    exportBtn.addEventListener("click", exportData);
+    importBtn.addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", () => {
+      if (importFile.files && importFile.files[0]) importData(importFile.files[0]);
+      importFile.value = ""; // permite reimportar el mismo archivo
+    });
+
+    /* ---------- Inicio ---------- */
+    async function init() {
+      try {
+        db = await openDB();
+        for (const key of ALL_KEYS) {
+          let val = await idbGet(key);
+          // Migración: si no hay nada en IndexedDB pero sí en el viejo localStorage
+          if (val === undefined) {
+            try {
+              const old = localStorage.getItem(key);
+              if (old) {
+                val = JSON.parse(old);
+                await idbSet(key, val);
+                localStorage.removeItem(key); // libera el localStorage compartido
+              }
+            } catch (e) { /* localStorage puede estar bloqueado o lleno: lo ignoramos */ }
+          }
+          cache[key] = Array.isArray(val) ? val : [];
+        }
+
+        // Migración del sueño: del modelo antiguo {fecha,inicio,fin}
+        // al nuevo {fechaInicio,inicio,fechaFin,fin}
+        for (const key of [KEY_SUENO_C, KEY_SUENO_F]) {
+          let changed = false;
+          cache[key] = cache[key].map(x => {
+            if (x.fecha !== undefined && x.fechaInicio === undefined) {
+              changed = true;
+              const fechaFin = x.fin ? (x.fin <= x.inicio ? addDays(x.fecha, 1) : x.fecha) : "";
+              return { id: x.id, fechaInicio: x.fecha, inicio: x.inicio, fechaFin, fin: x.fin || "" };
+            }
+            return x;
+          });
+          if (changed) save(key, cache[key]);
+        }
+      } catch (e) {
+        showError("No se pudo abrir la base de datos: " + (e && e.message));
+      }
+
+      setTomaDefaults();
+      setExtraDefaults();
+      renderTomas();
+      renderExtra();
+      suenoCristina.render();
+      suenoFernando.render();
+      setPcDefaults();
+      renderPc();
+      setPanalDefaults();
+      renderPanal();
+      updateStatus();
+
+      // Restaura la pestaña en la que estaba el usuario antes de recargar
+      if (db) {
+        const savedTab = await idbGet(KEY_UI_TAB);
+        if (savedTab) activateTab(savedTab);
+      }
+
+      // Refresca cada minuto el "tiempo desde la última" toma/extracción/ingesta
+      setInterval(() => {
+        updateTomaSince();
+        updateExtraSince();
+        updatePcSince();
+      }, 60000);
+    }
+
+    /* ---------- Sincronización con la nube (Firebase) ----------
+       Un listener por cada tipo de dato. Cuando cambian en la nube (porque
+       los editó otro dispositivo), actualizamos la caché, el respaldo local
+       y volvemos a pintar. La primera vez que la nube está vacía pero este
+       dispositivo ya tiene datos, los subimos para no perderlos. */
+    function startFirebaseSync() {
+      fbReady = true;
+      ALL_KEYS.forEach((key) => {
+        let first = true;
+        const ref = fdb.ref(FB_ROOT + "/" + key);
+        ref.on("value", (snap) => {
+          const raw = snap.val();
+          const remote = Array.isArray(raw) ? raw : (raw ? Object.values(raw) : []);
+          if (first && remote.length === 0 && (cache[key] || []).length > 0) {
+            first = false;
+            ref.set(cache[key]).catch((e) => showError("al subir datos: " + (e && e.message)));
+            return;
+          }
+          first = false;
+          cache[key] = remote;
+          if (db) idbSet(key, remote).catch(() => {}); // mantiene el respaldo local al día
+          renderAll();
+        }, (err) => showError("al leer la nube: " + (err && err.message)));
+      });
+      renderAll();
+    }
+
+    /* ---------- Arranque de la app (tras iniciar sesión) ---------- */
+    async function startApp() {
+      if (appStarted) return;
+      appStarted = true;
+      await init();        // carga el respaldo local de IndexedDB y pinta al instante
+      startFirebaseSync(); // engancha los datos de la nube
+    }
+
+    /* ---------- Autenticación ---------- */
+    fauth.onAuthStateChanged((user) => {
+      const loading = document.getElementById("auth-loading");
+      const overlay = document.getElementById("login-overlay");
+      const appRoot = document.getElementById("app-root");
+      if (loading) loading.hidden = true;
+      if (user) {
+        overlay.hidden = true;
+        appRoot.hidden = false;
+        const emailEl = document.getElementById("session-email");
+        if (emailEl) emailEl.textContent = user.email || "";
+        startApp();
+      } else {
+        overlay.hidden = false;
+        appRoot.hidden = true;
+      }
+    });
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+      const errorEl = document.getElementById("login-error");
+      errorEl.textContent = "";
+      try {
+        await fauth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        errorEl.textContent = "Email o contraseña incorrectos";
+      }
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      fauth.signOut().then(() => location.reload());
+    });
+  </script>
+</body>
+</html>
