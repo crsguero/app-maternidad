@@ -212,25 +212,30 @@
     .fab:hover { background: var(--primary-dark); }
     .fab:active { transform: scale(0.95); }
 
-    .fab-choices { display: flex; gap: 12px; margin: 16px 0; }
+    .fab-choices {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
     .fab-choice {
-      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      padding: 22px 12px;
+      padding: 18px 8px;
       border: 1px solid var(--border);
       border-radius: 14px;
       background: #fbfaff;
       color: var(--text);
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-weight: 700;
+      text-align: center;
       cursor: pointer;
       transition: all 0.15s;
     }
     .fab-choice:hover { border-color: var(--primary); background: #f3f1fb; }
-    .fab-choice-ico { font-size: 2rem; line-height: 1; }
+    .fab-choice-ico { font-size: 1.9rem; line-height: 1; }
     .fab-choices-box .secondary { width: 100%; }
 
     /* En móvil, la barra lateral interna pasa a pestañas horizontales */
@@ -613,6 +618,18 @@
     .opt { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; }
     .hint { font-size: 0.8rem; color: var(--muted); margin: -4px 0 14px; }
 
+    /* Títulos de sección en la pestaña Resumen */
+    .home-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin: 26px 0 12px;
+    }
+    .home-section-title:first-of-type { margin-top: 8px; }
+
     .since-card { text-align: center; }
     .since-label {
       font-size: 0.82rem;
@@ -624,8 +641,8 @@
     }
     .since-value { font-size: 1.6rem; font-weight: 700; color: var(--extra); }
     .since-value.muted { font-size: 1rem; font-weight: 600; color: var(--muted); }
-    #e-since:not(.muted) { color: var(--primary); }
-    #t-since:not(.muted) { color: var(--primary-dark); }
+    .e-since:not(.muted) { color: var(--primary); }
+    .t-since:not(.muted) { color: var(--primary-dark); }
     .since-value.warn-text { color: var(--danger); }
     .since-value.ok-text { color: #2f8f6e; }
     @media (max-width: 720px) {
@@ -803,6 +820,17 @@
       line-height: 1;
     }
     .del:hover { color: var(--danger); background: rgba(224,90,90,0.1); }
+    .stop {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+    .stop:hover { color: #2f8f6e; background: rgba(47,143,110,0.12); }
 
     .status {
       text-align: center;
@@ -914,15 +942,19 @@
         <h2 class="panel-title">📊 Resumen</h2>
       </div>
 
+      <h3 class="home-section-title">🍼 Tomas</h3>
       <div class="card since-card">
         <div class="since-label">Última toma</div>
-        <div class="since-value" id="t-since">—</div>
+        <div class="since-value t-since">—</div>
       </div>
+      <div id="home-tomas-resumen"></div>
 
+      <h3 class="home-section-title">💧 Extracciones</h3>
       <div class="card since-card">
         <div class="since-label">Última extracción</div>
-        <div class="since-value" id="e-since">—</div>
+        <div class="since-value e-since">—</div>
       </div>
+      <div id="home-extra-resumen"></div>
     </section>
 
     <!-- ===================== TOMAS ===================== -->
@@ -963,6 +995,11 @@
           </div>
         </form>
         </div>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Última toma</div>
+        <div class="since-value t-since">—</div>
       </div>
 
       <div class="subtabs">
@@ -1034,6 +1071,11 @@
           </div>
         </form>
         </div>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Última extracción</div>
+        <div class="since-value e-since">—</div>
       </div>
 
       <div class="subtabs">
@@ -1258,6 +1300,9 @@
             <div class="fab-choices">
               <button type="button" class="fab-choice" data-create="toma"><span class="fab-choice-ico">🍼</span><span>Toma</span></button>
               <button type="button" class="fab-choice" data-create="extraccion"><span class="fab-choice-ico">💧</span><span>Extracción</span></button>
+              <button type="button" class="fab-choice" data-create="panal"><span class="fab-choice-ico">🧷</span><span>Pañal</span></button>
+              <button type="button" class="fab-choice" data-create="sueno"><span class="fab-choice-ico">😴</span><span>Sueño</span></button>
+              <button type="button" class="fab-choice" data-create="paracetamol"><span class="fab-choice-ico">💊</span><span>Paracetamol</span></button>
             </div>
             <button type="button" class="secondary" id="fab-cancel">Cancelar</button>
           </div>
@@ -1552,10 +1597,18 @@
       choice.addEventListener("click", () => {
         const tipo = choice.dataset.create;
         closeFabModal();
-        const panel = tipo === "toma" ? "tomas" : "extracciones";
-        activateTab(panel);
-        if (db) idbSet(KEY_UI_TAB, panel).catch(() => {});
-        if (tipo === "toma") openTomaNew(); else openExtraNew();
+        const acciones = {
+          toma:        { panel: "tomas",        run: openTomaNew },
+          extraccion:  { panel: "extracciones", run: openExtraNew },
+          panal:       { panel: "panales",      run: openPanalNew },
+          sueno:       { panel: "sueno",        run: () => suenoCristina.quickStart() },
+          paracetamol: { panel: "paracetamol",  run: openPcNew }
+        };
+        const acc = acciones[tipo];
+        if (!acc) return;
+        activateTab(acc.panel);
+        if (db) idbSet(KEY_UI_TAB, acc.panel).catch(() => {});
+        acc.run();
       });
     });
 
@@ -1622,22 +1675,68 @@
     }
 
     function updateTomaSince() {
-      const el = document.getElementById("t-since");
-      if (!el) return;
+      const els = document.querySelectorAll(".t-since");
+      if (!els.length) return;
       const tomas = load(KEY_TOMAS);
+      let text, muted;
       if (tomas.length === 0) {
-        el.textContent = "Aún no hay tomas";
-        el.classList.add("muted");
-        return;
+        text = "Aún no hay tomas";
+        muted = true;
+      } else {
+        let latest = null;
+        for (const t of tomas) {
+          const dt = new Date(`${t.fecha}T${t.hora}`);
+          if (!latest || dt > latest) latest = dt;
+        }
+        const ms = Date.now() - latest.getTime();
+        text = formatElapsed(ms < 0 ? 0 : ms);
+        muted = false;
       }
-      el.classList.remove("muted");
-      let latest = null;
-      for (const t of tomas) {
-        const dt = new Date(`${t.fecha}T${t.hora}`);
-        if (!latest || dt > latest) latest = dt;
+      els.forEach(el => {
+        el.textContent = text;
+        el.classList.toggle("muted", muted);
+      });
+    }
+
+    // Tarjeta de resumen de un día de tomas
+    function tomasDiaCardHTML(fecha, items, avgGap) {
+      const mlMaterna = items.reduce((s, t) => s + tomaMaterna(t), 0);
+      const mlFormula = items.reduce((s, t) => s + tomaFormula(t), 0);
+      const totalMl = mlMaterna + mlFormula;
+      const count = items.length;
+      const pctMaterna = totalMl ? Math.round((mlMaterna / totalMl) * 100) : 0;
+      const pctFormula = totalMl ? 100 - pctMaterna : 0;
+
+      return `<div class="resumen-dia">
+        <div class="resumen-head">
+          <div class="resumen-fecha">${formatDayFull(fecha)}</div>
+          <div class="resumen-stats">
+            <span class="stat-val">${totalMl} ml</span>
+            <span class="stat-val">${count} ${count === 1 ? "toma" : "tomas"}</span>
+            ${avgGap ? `<span class="stat-val">Cada ${avgGap}</span>` : ""}
+          </div>
+        </div>
+        <div class="pct-bar">
+          <div class="pct-materna" style="width:${pctMaterna}%"></div>
+          <div class="pct-formula" style="width:${pctFormula}%"></div>
+        </div>
+        <div class="pct-legend">
+          <span>Materna ${pctMaterna}% · ${mlMaterna} ml</span>
+          <span>Fórmula ${pctFormula}% · ${mlFormula} ml</span>
+        </div>
+      </div>`;
+    }
+
+    // Intervalo medio entre tomas de un día (cada toma respecto a la anterior global)
+    function avgGapDia(tomas, fecha) {
+      const sorted = tomas.slice().sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+      let sum = 0, n = 0;
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i].fecha !== fecha) continue;
+        sum += new Date(`${sorted[i].fecha}T${sorted[i].hora}`) - new Date(`${sorted[i - 1].fecha}T${sorted[i - 1].hora}`);
+        n++;
       }
-      const ms = Date.now() - latest.getTime();
-      el.textContent = formatElapsed(ms < 0 ? 0 : ms);
+      return n ? formatIntervalo(sum / n) : null;
     }
 
     function renderTomasResumen() {
@@ -1651,55 +1750,29 @@
       const groups = {};
       for (const t of tomas) (groups[t.fecha] = groups[t.fecha] || []).push(t);
 
-      // Promedio del intervalo entre tomas por día (cada toma respecto a la anterior)
-      const sorted = tomas.slice().sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
-      const gapAcum = {};
-      for (let i = 1; i < sorted.length; i++) {
-        const cur = new Date(`${sorted[i].fecha}T${sorted[i].hora}`);
-        const prev = new Date(`${sorted[i - 1].fecha}T${sorted[i - 1].hora}`);
-        const f = sorted[i].fecha;
-        const acc = (gapAcum[f] = gapAcum[f] || { sum: 0, n: 0 });
-        acc.sum += cur - prev;
-        acc.n++;
-      }
-
       let html = "";
       for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
-        const items = groups[fecha];
-        const mlMaterna = items.reduce((s, t) => s + tomaMaterna(t), 0);
-        const mlFormula = items.reduce((s, t) => s + tomaFormula(t), 0);
-        const totalMl = mlMaterna + mlFormula;
-        const count = items.length;
-        const pctMaterna = totalMl ? Math.round((mlMaterna / totalMl) * 100) : 0;
-        const pctFormula = totalMl ? 100 - pctMaterna : 0;
-        const gp = gapAcum[fecha];
-        const avgGap = gp && gp.n ? formatIntervalo(gp.sum / gp.n) : null;
-
-        html += `<div class="resumen-dia">
-          <div class="resumen-head">
-            <div class="resumen-fecha">${formatDayFull(fecha)}</div>
-            <div class="resumen-stats">
-              <span class="stat-val">${totalMl} ml</span>
-              <span class="stat-val">${count} ${count === 1 ? "toma" : "tomas"}</span>
-              ${avgGap ? `<span class="stat-val">Cada ${avgGap}</span>` : ""}
-            </div>
-          </div>
-          <div class="pct-bar">
-            <div class="pct-materna" style="width:${pctMaterna}%"></div>
-            <div class="pct-formula" style="width:${pctFormula}%"></div>
-          </div>
-          <div class="pct-legend">
-            <span>Materna ${pctMaterna}% · ${mlMaterna} ml</span>
-            <span>Fórmula ${pctFormula}% · ${mlFormula} ml</span>
-          </div>
-        </div>`;
+        html += tomasDiaCardHTML(fecha, groups[fecha], avgGapDia(tomas, fecha));
       }
       el.innerHTML = html;
+    }
+
+    // Resumen de hoy en la pestaña Resumen (Home)
+    function renderHomeTomas() {
+      const el = document.getElementById("home-tomas-resumen");
+      if (!el) return;
+      const hoy = todayStr();
+      const tomas = load(KEY_TOMAS);
+      const items = tomas.filter(t => t.fecha === hoy);
+      el.innerHTML = items.length
+        ? tomasDiaCardHTML(hoy, items, avgGapDia(tomas, hoy))
+        : '<div class="empty">Sin tomas hoy.</div>';
     }
 
     function renderTomas() {
       updateTomaSince();
       renderTomasResumen();
+      renderHomeTomas();
       const tomas = load(KEY_TOMAS);
       if (tomas.length === 0) {
         tList.innerHTML = '<div class="empty">Aún no hay tomas registradas.</div>';
@@ -1890,22 +1963,41 @@
     }
 
     function updateExtraSince() {
-      const el = document.getElementById("e-since");
-      if (!el) return;
+      const els = document.querySelectorAll(".e-since");
+      if (!els.length) return;
       const extras = load(KEY_EXTRA);
+      let text, muted;
       if (extras.length === 0) {
-        el.textContent = "Aún no hay extracciones";
-        el.classList.add("muted");
-        return;
+        text = "Aún no hay extracciones";
+        muted = true;
+      } else {
+        let latest = null;
+        for (const x of extras) {
+          const dt = new Date(`${x.fecha}T${x.hora}`);
+          if (!latest || dt > latest) latest = dt;
+        }
+        const ms = Date.now() - latest.getTime();
+        text = formatElapsed(ms < 0 ? 0 : ms);
+        muted = false;
       }
-      el.classList.remove("muted");
-      let latest = null;
-      for (const x of extras) {
-        const dt = new Date(`${x.fecha}T${x.hora}`);
-        if (!latest || dt > latest) latest = dt;
-      }
-      const ms = Date.now() - latest.getTime();
-      el.textContent = formatElapsed(ms < 0 ? 0 : ms);
+      els.forEach(el => {
+        el.textContent = text;
+        el.classList.toggle("muted", muted);
+      });
+    }
+
+    // Tarjeta de resumen de un día de extracciones
+    function extraDiaCardHTML(fecha, items) {
+      const count = items.length;
+      const totalMl = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
+      const incompleta = items.some(x => x.incompleto || !(Number(x.ml) > 0));
+      return `<div class="resumen-dia">
+        <div class="resumen-fecha">${formatDayFull(fecha)}</div>
+        <div class="resumen-stats">
+          <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
+          <div class="stat"><div class="stat-val">${incompleta ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${totalMl} ml</div><div class="stat-lbl">Total</div></div>
+        </div>
+      </div>`;
     }
 
     function renderExtraResumen() {
@@ -1921,23 +2013,26 @@
 
       let html = "";
       for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
-        const count = groups[fecha].length;
-        const totalMl = groups[fecha].reduce((s, x) => s + (Number(x.ml) || 0), 0);
-        const incompleta = groups[fecha].some(x => x.incompleto || !(Number(x.ml) > 0));
-        html += `<div class="resumen-dia">
-          <div class="resumen-fecha">${formatDayFull(fecha)}</div>
-          <div class="resumen-stats">
-            <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
-            <div class="stat"><div class="stat-val">${incompleta ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${totalMl} ml</div><div class="stat-lbl">Total</div></div>
-          </div>
-        </div>`;
+        html += extraDiaCardHTML(fecha, groups[fecha]);
       }
       el.innerHTML = html;
+    }
+
+    // Resumen de hoy en la pestaña Resumen (Home)
+    function renderHomeExtra() {
+      const el = document.getElementById("home-extra-resumen");
+      if (!el) return;
+      const hoy = todayStr();
+      const items = load(KEY_EXTRA).filter(x => x.fecha === hoy);
+      el.innerHTML = items.length
+        ? extraDiaCardHTML(hoy, items)
+        : '<div class="empty">Sin extracciones hoy.</div>';
     }
 
     function renderExtra() {
       updateExtraSince();
       renderExtraResumen();
+      renderHomeExtra();
       const extras = load(KEY_EXTRA);
       if (extras.length === 0) {
         eList.innerHTML = '<div class="empty">Aún no hay extracciones registradas.</div>';
@@ -2229,25 +2324,26 @@
         fInicio.value = nowTimeStr();
       }
 
-      function clearForm() {
-        fInicio.value = "";
-        fFechaFin.value = "";
-        fFin.value = "";
-        setDefaults();
-      }
-
       function closeModal() {
         modal.hidden = true;
         editId = null;
       }
 
-      function openNew() {
-        editId = null;
-        titulo.textContent = "Nuevo periodo";
-        submit.textContent = "Guardar periodo";
-        clearForm();
-        modal.hidden = false;
-        fInicio.focus();
+      // Crea al instante un periodo abierto con la fecha/hora del momento del click.
+      // El fin (y cualquier ajuste) se completa después desde el botón de editar.
+      function quickStart() {
+        const datos = {
+          fechaInicio: todayStr(),
+          inicio: nowTimeStr(),
+          fechaFin: "",
+          fin: ""
+        };
+        const periodos = load(key);
+        periodos.push(Object.assign({ id: newId() }, datos));
+        save(key, periodos);
+        day = datos.fechaInicio; // mostrar el día del periodo creado
+        render();
+        updateStatus();
       }
 
       function startEdit(id) {
@@ -2295,10 +2391,11 @@
         let html = `<div class="day-group">`;
         for (const x of items) {
           const min = suenoMinutos(x);
-          let derecha, tiempo;
+          let derecha, tiempo, stopBtn = "";
           if (min === null) {
             tiempo = `${x.inicio} → …`;
             derecha = `<span class="ongoing">🌙 Actualmente dormida</span>`;
+            stopBtn = `<button class="stop" data-id="${x.id}" title="Despertar ahora" aria-label="Despertar (finalizar periodo ahora)">☀️</button>`;
           } else {
             const dias = x.fechaFin !== x.fechaInicio ? diffDias(x.fechaInicio, x.fechaFin) : 0;
             tiempo = `${x.inicio} → ${x.fin}${dias ? ` <span class="opt">(+${dias} día${dias === 1 ? "" : "s"})</span>` : ""}`;
@@ -2309,6 +2406,7 @@
               <div class="toma-time">${tiempo}</div>
               <div class="toma-type">${derecha}</div>
             </div>
+            ${stopBtn}
             <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar periodo">✎</button>
             <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar periodo">✕</button>
           </div>`;
@@ -2394,7 +2492,7 @@
         updateStatus();
       });
 
-      newBtn.addEventListener("click", openNew);
+      newBtn.addEventListener("click", quickStart);
       cancel.addEventListener("click", closeModal);
       modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
       document.addEventListener("keydown", (e) => {
@@ -2415,6 +2513,19 @@
       });
 
       list.addEventListener("click", (e) => {
+        const stopBtn = e.target.closest(".stop");
+        if (stopBtn) {
+          const periodos = load(key);
+          const per = periodos.find(x => x.id === stopBtn.dataset.id);
+          if (per) {
+            per.fechaFin = todayStr();
+            per.fin = nowTimeStr();
+            save(key, periodos);
+            render();
+            updateStatus();
+          }
+          return;
+        }
         const editBtn = e.target.closest(".edit");
         if (editBtn) { startEdit(editBtn.dataset.id); return; }
         const btn = e.target.closest(".del");
@@ -2427,7 +2538,7 @@
       });
 
       setDefaults();
-      return { render };
+      return { render, quickStart };
     }
 
     const suenoCristina = setupSueno(KEY_SUENO_C, "sc");
