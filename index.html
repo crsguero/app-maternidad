@@ -78,6 +78,17 @@
       margin: 0 auto;
     }
 
+    .nav-group-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0 14px;
+      margin: 14px 0 4px;
+    }
+    .nav-group-label:first-child { margin-top: 0; }
+
     .tab {
       display: flex;
       align-items: center;
@@ -115,9 +126,125 @@
     /* Botón de Ajustes anclado al fondo de la barra lateral */
     .nav-settings { margin-top: auto; }
 
+    /* ---------- Modal de Ajustes con barra lateral interna ---------- */
+    .settings-box.card { max-width: 660px; padding: 0; overflow: hidden; }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-header h2 { margin: 0; font-size: 1.4rem; color: var(--text); }
+    .settings-x {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .settings-x:hover { color: var(--text); background: #f3f1fb; }
+
+    .settings-layout { display: flex; align-items: stretch; }
+
+    .settings-nav {
+      flex: 0 0 168px;
+      background: #f7f5fd;
+      border-right: 1px solid var(--border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .settings-tab {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .settings-tab:hover { background: #efebfb; color: var(--text); }
+    .settings-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .settings-content { flex: 1; min-width: 0; padding: 22px 22px 8px; }
+    .settings-content h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--primary-dark); }
+    .settings-panel[hidden] { display: none; }
+
     /* Acciones del modal de Ajustes, apiladas a todo el ancho */
-    .settings-actions { display: flex; flex-direction: column; gap: 10px; }
-    .settings-actions .secondary { width: 100%; }
+    .settings-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+    /* ---------- Botón flotante de creación rápida (FAB) ---------- */
+    .fab {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 2rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(124, 108, 224, 0.45);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .fab:hover { background: var(--primary-dark); }
+    .fab:active { transform: scale(0.95); }
+
+    .fab-choices { display: flex; gap: 12px; margin: 16px 0; }
+    .fab-choice {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 22px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fbfaff;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .fab-choice:hover { border-color: var(--primary); background: #f3f1fb; }
+    .fab-choice-ico { font-size: 2rem; line-height: 1; }
+    .fab-choices-box .secondary { width: 100%; }
+
+    /* En móvil, la barra lateral interna pasa a pestañas horizontales */
+    @media (max-width: 560px) {
+      .settings-layout { flex-direction: column; }
+      .settings-nav {
+        flex: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .settings-tab { width: auto; flex: 1; justify-content: center; }
+    }
 
     /* Botones de menú: solo visibles en móvil */
     .menu-toggle, .menu-close { display: none; }
@@ -160,20 +287,6 @@
       body.menu-open .sidebar { display: flex; }
       body.menu-open { overflow: hidden; }
 
-      .menu-close {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        align-self: flex-end;
-        width: 40px;
-        height: 40px;
-        border: none;
-        background: transparent;
-        color: var(--muted);
-        font-size: 1.4rem;
-        cursor: pointer;
-      }
-
       .brand { text-align: center; padding: 4px 8px 20px; }
       .nav { display: flex; flex-direction: column; gap: 10px; }
       .tab { justify-content: flex-start; font-size: 1.1rem; padding: 16px 18px; }
@@ -206,7 +319,11 @@
       transition: all 0.15s;
     }
     .subtab:hover { background: #f3f1fb; color: var(--text); }
-    .subtab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .subtab.active {
+      background: #efebfb;
+      border-color: var(--primary);
+      color: var(--primary-dark);
+    }
     .subpanel { display: none; }
     .subpanel.active { display: block; }
 
@@ -480,7 +597,6 @@
       .tipo-linea + .tipo-linea::before { content: none; }
     }
     .dot.extra { background: var(--extra); }
-    .dot.sueno { background: #9b6cd0; }
     .dot.med { background: #e0a14a; }
     .dot.caca { background: var(--caca); }
     .dot.pis { background: var(--pis); }
@@ -531,7 +647,7 @@
       text-transform: capitalize;
       margin-bottom: 10px;
     }
-    .resumen-stats { display: flex; gap: 28px; margin-bottom: 12px; }
+    .resumen-stats { display: flex; gap: 28px; }
     .stat-val { font-size: 1.3rem; font-weight: 700; }
     /* Resumen de Tomas: fecha y datos en la misma fila, datos a la derecha */
     #t-resumen .resumen-head {
@@ -541,7 +657,7 @@
       gap: 12px;
       margin-bottom: 12px;
     }
-    #t-resumen .resumen-fecha { margin-bottom: 0; color: var(--text); }
+    #t-resumen .resumen-fecha { margin-bottom: 0; color: var(--primary-dark); }
     #t-resumen .resumen-stats {
       margin-bottom: 0;
       gap: 14px;
@@ -664,7 +780,8 @@
       color: var(--text);
       white-space: nowrap;
     }
-    .toma-amount .aprox {
+    .toma-amount .aprox,
+    .resumen-stats .aprox {
       display: inline-block;
       width: 7px;
       height: 7px;
@@ -738,7 +855,6 @@
     }
     .login-card button[type="submit"]:hover { background: var(--primary-dark); }
     .login-error { color: var(--danger); font-size: 0.85rem; margin: 12px 0 0; min-height: 1em; }
-    .logout-row { margin-top: 18px; }
   </style>
 </head>
 <body>
@@ -769,6 +885,7 @@
 
   <div class="app" id="app-root" hidden>
     <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    <button class="fab" id="fab-btn" aria-label="Crear nuevo registro">+</button>
     <aside class="sidebar" id="sidebar">
       <button class="menu-close" id="menu-close" aria-label="Cerrar menú">✕</button>
       <div class="brand">
@@ -776,9 +893,12 @@
         <p>Tomas y extracciones</p>
       </div>
       <nav class="nav">
-        <button class="tab active" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
+        <button class="tab active" data-panel="home"><span class="ico">📊</span> Resumen</button>
+        <div class="nav-group-label">Bebé</div>
+        <button class="tab" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
         <button class="tab" data-panel="extracciones"><span class="ico">💧</span> Extracciones</button>
         <button class="tab" data-panel="panales"><span class="ico">🧷</span> Pañales</button>
+        <div class="nav-group-label">Mamá</div>
         <button class="tab" data-panel="sueno"><span class="ico">😴</span> Sueño</button>
         <button class="tab" data-panel="paracetamol"><span class="ico">💊</span> Paracetamol<span class="nav-dot" id="pc-nav-dot" hidden></span></button>
       </nav>
@@ -788,8 +908,25 @@
     <main class="main">
       <div class="content">
 
+    <!-- ===================== RESUMEN ===================== -->
+    <section class="panel active" id="panel-home">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">📊 Resumen</h2>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Última toma</div>
+        <div class="since-value" id="t-since">—</div>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Última extracción</div>
+        <div class="since-value" id="e-since">—</div>
+      </div>
+    </section>
+
     <!-- ===================== TOMAS ===================== -->
-    <section class="panel active" id="panel-tomas">
+    <section class="panel" id="panel-tomas">
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">🍼 Tomas</h2>
       </div>
@@ -826,11 +963,6 @@
           </div>
         </form>
         </div>
-      </div>
-
-      <div class="card since-card">
-        <div class="since-label">Última toma</div>
-        <div class="since-value" id="t-since">—</div>
       </div>
 
       <div class="subtabs">
@@ -904,11 +1036,6 @@
         </div>
       </div>
 
-      <div class="card since-card">
-        <div class="since-label">Última extracción</div>
-        <div class="since-value" id="e-since">—</div>
-      </div>
-
       <div class="subtabs">
         <button class="subtab active" data-sub="extra-historial">Historial</button>
         <button class="subtab" data-sub="extra-resumen">Resumen</button>
@@ -980,14 +1107,13 @@
 
     <!-- ===================== SUEÑO ===================== -->
     <section class="panel" id="panel-sueno">
-      <div class="subtabs">
-        <button class="subtab active" data-sub="cristina">Cristina</button>
-        <button class="subtab" data-sub="fernando">Fernando</button>
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">😴 Sueño</h2>
       </div>
 
-      <!-- Cristina -->
-      <div class="subpanel active" id="sub-cristina">
-        <div class="card">
+      <div id="sub-cristina">
+        <div class="modal-overlay" id="sc-modal" hidden>
+          <div class="modal-box card">
           <h2 id="sc-titulo">Nuevo periodo</h2>
           <form id="sc-form">
             <div class="row">
@@ -1013,59 +1139,35 @@
             <p class="hint">Si dejas el fin en blanco, el periodo quedará como «Actualmente dormida». Podrás editarlo más tarde para cerrarlo.</p>
             <div class="form-actions">
               <button type="submit" class="primary" id="sc-submit">Guardar periodo</button>
-              <button type="button" class="secondary" id="sc-cancel" hidden>Cancelar edición</button>
+              <button type="button" class="secondary" id="sc-cancel">Cancelar</button>
             </div>
           </form>
-        </div>
-
-        <div class="card">
-          <div class="list-head">
-            <h2>Historial de sueño</h2>
-            <div class="total" id="sc-total"></div>
           </div>
-          <div id="sc-list"></div>
-        </div>
-      </div>
-
-      <!-- Fernando -->
-      <div class="subpanel" id="sub-fernando">
-        <div class="card">
-          <h2 id="sf-titulo">Nuevo periodo</h2>
-          <form id="sf-form">
-            <div class="row">
-              <div class="field">
-                <label for="sf-fecha-inicio">Fecha de inicio</label>
-                <input type="date" id="sf-fecha-inicio" required>
-              </div>
-              <div class="field">
-                <label for="sf-inicio">Hora de inicio</label>
-                <input type="time" id="sf-inicio" required>
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <label for="sf-fecha-fin">Fecha de fin <span class="opt">(opcional)</span></label>
-                <input type="date" id="sf-fecha-fin">
-              </div>
-              <div class="field">
-                <label for="sf-fin">Hora de fin <span class="opt">(opcional)</span></label>
-                <input type="time" id="sf-fin">
-              </div>
-            </div>
-            <p class="hint">Si dejas el fin en blanco, el periodo quedará como «Actualmente dormida». Podrás editarlo más tarde para cerrarlo.</p>
-            <div class="form-actions">
-              <button type="submit" class="primary" id="sf-submit">Guardar periodo</button>
-              <button type="button" class="secondary" id="sf-cancel" hidden>Cancelar edición</button>
-            </div>
-          </form>
         </div>
 
-        <div class="card">
-          <div class="list-head">
-            <h2>Historial de sueño</h2>
-            <div class="total" id="sf-total"></div>
+        <div class="subtabs">
+          <button class="subtab active" data-sub="suenoc-historial">Historial</button>
+          <button class="subtab" data-sub="suenoc-resumen">Resumen</button>
+        </div>
+
+        <div class="subpanel active" id="sub-suenoc-historial">
+          <div class="card">
+            <div class="list-head">
+              <h2>Historial de sueño</h2>
+              <button type="button" class="primary" id="sc-new">+ Nuevo periodo</button>
+            </div>
+            <div class="pager" id="sc-pager"></div>
+            <div id="sc-list"></div>
           </div>
-          <div id="sf-list"></div>
+        </div>
+
+        <div class="subpanel" id="sub-suenoc-resumen">
+          <div class="card">
+            <div class="list-head">
+              <h2>Resumen por día</h2>
+            </div>
+            <div id="sc-resumen"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -1114,22 +1216,50 @@
 
         <!-- ===================== AJUSTES ===================== -->
         <div class="modal-overlay" id="settings-modal" hidden>
-          <div class="modal-box card">
-            <h2>Ajustes</h2>
-            <div class="field">
-              <label>Copia de seguridad</label>
-              <p class="hint">Exporta todos tus datos a un archivo, o impórtalos desde uno guardado previamente.</p>
+          <div class="modal-box settings-box card">
+            <div class="settings-header">
+              <h2>Ajustes</h2>
+              <button type="button" class="settings-x" id="settings-close" aria-label="Cerrar">✕</button>
             </div>
-            <div class="settings-actions">
-              <button type="button" class="primary" id="export-btn">⬇️ Exportar datos</button>
-              <button type="button" class="primary" id="import-btn">⬆️ Importar datos</button>
-              <button type="button" class="secondary" id="settings-close">Cerrar</button>
-            </div>
-            <div class="logout-row">
-              <span class="hint" id="session-email"></span>
-              <button type="button" class="secondary" id="logout-btn">Cerrar sesión</button>
+            <div class="settings-layout">
+              <nav class="settings-nav">
+                <button type="button" class="settings-tab active" data-settings-panel="datos"><span class="ico">💾</span> Datos</button>
+                <button type="button" class="settings-tab" data-settings-panel="sesion"><span class="ico">👤</span> Sesión</button>
+              </nav>
+              <div class="settings-content">
+                <!-- Exportación e importación -->
+                <div class="settings-panel" data-settings-panel="datos">
+                  <h3>Exportación e importación</h3>
+                  <p class="hint">Exporta todos tus datos a un archivo, o impórtalos desde uno guardado previamente.</p>
+                  <div class="settings-actions">
+                    <button type="button" class="primary" id="export-btn">⬇️ Exportar datos</button>
+                    <button type="button" class="primary" id="import-btn">⬆️ Importar datos</button>
+                  </div>
+                </div>
+                <!-- Sesión -->
+                <div class="settings-panel" data-settings-panel="sesion" hidden>
+                  <h3>Sesión</h3>
+                  <div class="field">
+                    <label>Cuenta</label>
+                    <p class="hint" id="session-email"></p>
+                  </div>
+                  <button type="button" class="secondary" id="logout-btn">Cerrar sesión</button>
+                </div>
+              </div>
             </div>
             <input type="file" id="import-file" accept="application/json,.json" hidden>
+          </div>
+        </div>
+
+        <!-- ===================== CREACIÓN RÁPIDA (FAB) ===================== -->
+        <div class="modal-overlay" id="fab-modal" hidden>
+          <div class="modal-box card fab-choices-box">
+            <h2>Nuevo registro</h2>
+            <div class="fab-choices">
+              <button type="button" class="fab-choice" data-create="toma"><span class="fab-choice-ico">🍼</span><span>Toma</span></button>
+              <button type="button" class="fab-choice" data-create="extraccion"><span class="fab-choice-ico">💧</span><span>Extracción</span></button>
+            </div>
+            <button type="button" class="secondary" id="fab-cancel">Cancelar</button>
           </div>
         </div>
 
@@ -1283,6 +1413,16 @@
       const mes = new Date(y, m - 1, d).toLocaleDateString("es-ES", { month: "long" });
       return `${d} ${mes.charAt(0).toUpperCase() + mes.slice(1)}`;
     }
+    // Formato "Domingo, 23 Jun 2026" (con Hoy/Ayer)
+    function formatDayFull(fecha) {
+      if (fecha === todayStr()) return "Hoy";
+      if (fecha === yesterdayStr()) return "Ayer";
+      const [y, m, d] = fecha.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const dia = dt.toLocaleDateString("es-ES", { weekday: "long" });
+      const mes = dt.toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+      return `${dia.charAt(0).toUpperCase() + dia.slice(1)}, ${d} ${mes.charAt(0).toUpperCase() + mes.slice(1)} ${y}`;
+    }
     // Formato corto "24 Jun 2026" (con Hoy/Ayer)
     function formatDayShort(fecha) {
       if (fecha === todayStr()) return "Hoy";
@@ -1391,6 +1531,32 @@
     menuClose.addEventListener("click", () => setMenuOpen(false));
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && document.body.classList.contains("menu-open")) setMenuOpen(false);
+    });
+
+    /* ---------- Botón flotante de creación rápida ---------- */
+    const fabBtn = document.getElementById("fab-btn");
+    const fabModal = document.getElementById("fab-modal");
+    const fabCancel = document.getElementById("fab-cancel");
+    function openFabModal() {
+      fabModal.hidden = false;
+      setMenuOpen(false); // por si el menú móvil estaba abierto
+    }
+    function closeFabModal() { fabModal.hidden = true; }
+    fabBtn.addEventListener("click", openFabModal);
+    fabCancel.addEventListener("click", closeFabModal);
+    fabModal.addEventListener("click", (e) => { if (e.target === fabModal) closeFabModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !fabModal.hidden) closeFabModal();
+    });
+    fabModal.querySelectorAll(".fab-choice").forEach(choice => {
+      choice.addEventListener("click", () => {
+        const tipo = choice.dataset.create;
+        closeFabModal();
+        const panel = tipo === "toma" ? "tomas" : "extracciones";
+        activateTab(panel);
+        if (db) idbSet(KEY_UI_TAB, panel).catch(() => {});
+        if (tipo === "toma") openTomaNew(); else openExtraNew();
+      });
     });
 
     /* ===================== TOMAS ===================== */
@@ -1511,7 +1677,7 @@
 
         html += `<div class="resumen-dia">
           <div class="resumen-head">
-            <div class="resumen-fecha">${formatDayMes(fecha)}</div>
+            <div class="resumen-fecha">${formatDayFull(fecha)}</div>
             <div class="resumen-stats">
               <span class="stat-val">${totalMl} ml</span>
               <span class="stat-val">${count} ${count === 1 ? "toma" : "tomas"}</span>
@@ -1756,10 +1922,13 @@
       let html = "";
       for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
         const count = groups[fecha].length;
+        const totalMl = groups[fecha].reduce((s, x) => s + (Number(x.ml) || 0), 0);
+        const incompleta = groups[fecha].some(x => x.incompleto || !(Number(x.ml) > 0));
         html += `<div class="resumen-dia">
-          <div class="resumen-fecha">${formatDay(fecha)}</div>
+          <div class="resumen-fecha">${formatDayFull(fecha)}</div>
           <div class="resumen-stats">
             <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
+            <div class="stat"><div class="stat-val">${incompleta ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${totalMl} ml</div><div class="stat-lbl">Total</div></div>
           </div>
         </div>`;
       }
@@ -2045,11 +2214,15 @@
       const fFechaFin = document.getElementById(p + "-fecha-fin");
       const fFin = document.getElementById(p + "-fin");
       const list = document.getElementById(p + "-list");
-      const total = document.getElementById(p + "-total");
+      const pager = document.getElementById(p + "-pager");
+      const resumen = document.getElementById(p + "-resumen");
       const titulo = document.getElementById(p + "-titulo");
       const submit = document.getElementById(p + "-submit");
       const cancel = document.getElementById(p + "-cancel");
+      const modal = document.getElementById(p + "-modal");
+      const newBtn = document.getElementById(p + "-new");
       let editId = null;
+      let day = null; // día (fechaInicio) que se muestra en el historial paginado
 
       function setDefaults() {
         fFechaIni.value = todayStr();
@@ -2063,13 +2236,18 @@
         setDefaults();
       }
 
-      function exitEdit() {
+      function closeModal() {
+        modal.hidden = true;
+        editId = null;
+      }
+
+      function openNew() {
         editId = null;
         titulo.textContent = "Nuevo periodo";
         submit.textContent = "Guardar periodo";
-        cancel.hidden = true;
-        form.closest(".card").classList.remove("editing");
         clearForm();
+        modal.hidden = false;
+        fInicio.focus();
       }
 
       function startEdit(id) {
@@ -2082,31 +2260,83 @@
         fFin.value = per.fin || "";
         titulo.textContent = "Editar periodo";
         submit.textContent = "Actualizar periodo";
-        cancel.hidden = false;
-        form.closest(".card").classList.add("editing");
-        form.scrollIntoView({ behavior: "smooth", block: "start" });
         // Si está abierto, ayudamos a cerrarlo proponiendo fecha/hora actuales
         if (!per.fin) {
           fFechaFin.value = todayStr();
           fFin.value = nowTimeStr();
         }
+        modal.hidden = false;
         fFin.focus();
       }
 
       function render() {
+        renderResumen();
         const periodos = load(key);
         if (periodos.length === 0) {
           list.innerHTML = '<div class="empty">Aún no hay periodos registrados.</div>';
-          total.textContent = "";
+          if (pager) pager.innerHTML = "";
           return;
         }
         periodos.sort((a, b) => (b.fechaInicio + b.inicio).localeCompare(a.fechaInicio + a.inicio));
 
-        const totalHoy = periodos
-          .filter(x => x.fechaInicio === todayStr())
-          .reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
-        total.innerHTML = `Hoy: <strong>${formatDuracion(totalHoy)}</strong>`;
+        const groups = {};
+        for (const x of periodos) (groups[x.fechaInicio] = groups[x.fechaInicio] || []).push(x);
 
+        // Paginación: se muestra un día por página
+        const fechas = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+        if (!fechas.includes(day)) day = fechas[0];
+        const idx = fechas.indexOf(day);
+
+        const items = groups[day];
+        const totalDia = items.reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
+        const byline = `${formatDuracion(totalDia)} · ${items.length} ${items.length === 1 ? "periodo" : "periodos"}`;
+        renderPager(fechas, idx, byline);
+
+        let html = `<div class="day-group">`;
+        for (const x of items) {
+          const min = suenoMinutos(x);
+          let derecha, tiempo;
+          if (min === null) {
+            tiempo = `${x.inicio} → …`;
+            derecha = `<span class="ongoing">🌙 Actualmente dormida</span>`;
+          } else {
+            const dias = x.fechaFin !== x.fechaInicio ? diffDias(x.fechaInicio, x.fechaFin) : 0;
+            tiempo = `${x.inicio} → ${x.fin}${dias ? ` <span class="opt">(+${dias} día${dias === 1 ? "" : "s"})</span>` : ""}`;
+            derecha = formatDuracion(min);
+          }
+          html += `<div class="toma">
+            <div class="toma-info">
+              <div class="toma-time">${tiempo}</div>
+              <div class="toma-type">${derecha}</div>
+            </div>
+            <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar periodo">✎</button>
+            <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar periodo">✕</button>
+          </div>`;
+        }
+        html += "</div>";
+        list.innerHTML = html;
+      }
+
+      function renderPager(fechas, idx, byline) {
+        if (!pager) return;
+        const atNewest = idx <= 0;
+        const atOldest = idx >= fechas.length - 1;
+        pager.innerHTML =
+          `<button class="pager-btn" data-dir="older" title="Día anterior" aria-label="Día anterior" ${atOldest ? "disabled" : ""}>❮</button>` +
+          `<div class="pager-center">` +
+            `<span class="pager-label">${formatDayShort(fechas[idx])}</span>` +
+            `<span class="pager-byline">${byline}</span>` +
+          `</div>` +
+          `<button class="pager-btn" data-dir="newer" title="Día siguiente" aria-label="Día siguiente" ${atNewest ? "disabled" : ""}>❯</button>`;
+      }
+
+      function renderResumen() {
+        if (!resumen) return;
+        const periodos = load(key);
+        if (periodos.length === 0) {
+          resumen.innerHTML = '<div class="empty">Aún no hay periodos registrados.</div>';
+          return;
+        }
         const groups = {};
         for (const x of periodos) (groups[x.fechaInicio] = groups[x.fechaInicio] || []).push(x);
 
@@ -2114,35 +2344,16 @@
         for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
           const items = groups[fecha];
           const totalDia = items.reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
-          html += `<div class="day-group">
-            <div class="day-label">
-              <span>${formatDay(fecha)}</span>
-              <span>${formatDuracion(totalDia)} · ${items.length} ${items.length === 1 ? "periodo" : "periodos"}</span>
-            </div>`;
-          for (const x of items) {
-            const min = suenoMinutos(x);
-            let derecha, tiempo;
-            if (min === null) {
-              tiempo = `${x.inicio} → …`;
-              derecha = `<span class="ongoing">🌙 Actualmente dormida</span>`;
-            } else {
-              const dias = x.fechaFin !== x.fechaInicio ? diffDias(x.fechaInicio, x.fechaFin) : 0;
-              tiempo = `${x.inicio} → ${x.fin}${dias ? ` <span class="opt">(+${dias} día${dias === 1 ? "" : "s"})</span>` : ""}`;
-              derecha = formatDuracion(min);
-            }
-            html += `<div class="toma">
-              <span class="dot sueno"></span>
-              <div class="toma-info">
-                <div class="toma-time">${tiempo}</div>
-                <div class="toma-type">${derecha}</div>
-              </div>
-              <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar periodo">✎</button>
-              <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar periodo">✕</button>
-            </div>`;
-          }
-          html += "</div>";
+          const abierto = items.some(x => suenoMinutos(x) === null);
+          html += `<div class="resumen-dia">
+            <div class="resumen-fecha">${formatDayFull(fecha)}</div>
+            <div class="resumen-stats">
+              <div class="stat"><div class="stat-val">${formatDuracion(totalDia)}${abierto ? " +" : ""}</div><div class="stat-lbl">Dormido</div></div>
+              <div class="stat"><div class="stat-val">${items.length}</div><div class="stat-lbl">${items.length === 1 ? "Periodo" : "Periodos"}</div></div>
+            </div>
+          </div>`;
         }
-        list.innerHTML = html;
+        resumen.innerHTML = html;
       }
 
       form.addEventListener("submit", (e) => {
@@ -2173,17 +2384,35 @@
           const per = periodos.find(x => x.id === editId);
           if (per) Object.assign(per, datos);
           save(key, periodos);
-          exitEdit();
         } else {
           periodos.push(Object.assign({ id: newId() }, datos));
           save(key, periodos);
-          clearForm();
         }
+        day = datos.fechaInicio; // mostrar el día del periodo creado/editado
+        closeModal();
         render();
         updateStatus();
       });
 
-      cancel.addEventListener("click", exitEdit);
+      newBtn.addEventListener("click", openNew);
+      cancel.addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !modal.hidden) closeModal();
+      });
+
+      pager.addEventListener("click", (e) => {
+        const btn = e.target.closest(".pager-btn");
+        if (!btn || btn.disabled) return;
+        const fechas = [...new Set(load(key).map(x => x.fechaInicio))].sort((a, b) => b.localeCompare(a));
+        let idx = fechas.indexOf(day);
+        if (idx < 0) idx = 0;
+        idx = btn.dataset.dir === "older"
+          ? Math.min(idx + 1, fechas.length - 1)
+          : Math.max(idx - 1, 0);
+        day = fechas[idx];
+        render();
+      });
 
       list.addEventListener("click", (e) => {
         const editBtn = e.target.closest(".edit");
@@ -2191,7 +2420,7 @@
         const btn = e.target.closest(".del");
         if (!btn) return;
         if (!confirm("¿Eliminar este periodo?")) return;
-        if (editId === btn.dataset.id) exitEdit();
+        if (editId === btn.dataset.id) closeModal();
         save(key, load(key).filter(x => x.id !== btn.dataset.id));
         render();
         updateStatus();
@@ -2202,7 +2431,6 @@
     }
 
     const suenoCristina = setupSueno(KEY_SUENO_C, "sc");
-    const suenoFernando = setupSueno(KEY_SUENO_F, "sf");
 
     /* ===================== PARACETAMOL ===================== */
     const formPc = document.getElementById("pc-form");
@@ -2368,7 +2596,6 @@
       renderTomas();
       renderExtra();
       suenoCristina.render();
-      suenoFernando.render();
       renderPc();
       renderPanal();
       updateStatus();
@@ -2437,6 +2664,17 @@
       reader.readAsText(file);
     }
 
+    // Pestañas internas del modal de Ajustes
+    const settingsTabs = settingsModal.querySelectorAll(".settings-tab");
+    const settingsPanels = settingsModal.querySelectorAll(".settings-panel");
+    settingsTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const target = tab.dataset.settingsPanel;
+        settingsTabs.forEach((t) => t.classList.toggle("active", t === tab));
+        settingsPanels.forEach((p) => { p.hidden = p.dataset.settingsPanel !== target; });
+      });
+    });
+
     settingsBtn.addEventListener("click", openSettings);
     settingsClose.addEventListener("click", closeSettings);
     settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) closeSettings(); });
@@ -2493,7 +2731,6 @@
       renderTomas();
       renderExtra();
       suenoCristina.render();
-      suenoFernando.render();
       setPcDefaults();
       renderPc();
       setPanalDefaults();
