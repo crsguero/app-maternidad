@@ -610,6 +610,7 @@
     .toma-time { font-weight: 700; font-size: 1rem; }
     .toma-dur { font-weight: 400; font-size: 0.8rem; color: var(--muted); }
     .toma-type { font-size: 0.8rem; color: var(--muted); }
+    .toma-type .dur-total { font-weight: 400; color: var(--muted); }
     .toma-type .accent { color: var(--primary); }
     .toma-gap { font-size: 0.8rem; margin-top: 2px; }
     .toma-gap .gap, .toma-type .gap { color: var(--primary-dark); }
@@ -667,21 +668,25 @@
     .resumen-stats { display: flex; gap: 28px; }
     .stat-val { font-size: 1.3rem; font-weight: 700; }
     /* Resumen de Tomas: fecha y datos en la misma fila, datos a la derecha */
-    #t-resumen .resumen-head {
+    #t-resumen .resumen-head,
+    #home-tomas-resumen .resumen-head {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       gap: 12px;
       margin-bottom: 12px;
     }
-    #t-resumen .resumen-fecha { margin-bottom: 0; color: var(--primary-dark); }
-    #t-resumen .resumen-stats {
+    #t-resumen .resumen-fecha,
+    #home-tomas-resumen .resumen-fecha { margin-bottom: 0; color: var(--primary-dark); }
+    #t-resumen .resumen-stats,
+    #home-tomas-resumen .resumen-stats {
       margin-bottom: 0;
       gap: 14px;
       flex-wrap: wrap;
       justify-content: flex-end;
     }
-    #t-resumen .stat-val {
+    #t-resumen .stat-val,
+    #home-tomas-resumen .stat-val {
       font-weight: 600;
       font-size: 1.05rem;
       color: var(--text);
@@ -689,12 +694,14 @@
     }
     /* Móvil: fecha en una línea y los datos en la siguiente, a la izquierda */
     @media (max-width: 720px) {
-      #t-resumen .resumen-head {
+      #t-resumen .resumen-head,
+      #home-tomas-resumen .resumen-head {
         flex-direction: column;
         align-items: flex-start;
         gap: 4px;
       }
-      #t-resumen .resumen-stats { justify-content: flex-start; }
+      #t-resumen .resumen-stats,
+      #home-tomas-resumen .resumen-stats { justify-content: flex-start; }
     }
 
     /* Pañales: una tarjeta por día con los items dentro */
@@ -1503,6 +1510,27 @@
     // Días de diferencia entre dos fechas "YYYY-MM-DD"
     function diffDias(a, b) {
       return Math.round((new Date(b + "T00:00") - new Date(a + "T00:00")) / 86400000);
+    }
+    // Todas las fechas "YYYY-MM-DD" que abarca un periodo (de inicio a fin, ambos incluidos)
+    function fechasDePeriodo(x) {
+      const fechas = [x.fechaInicio];
+      if (x.fechaFin && x.fechaFin !== x.fechaInicio) {
+        let f = addDays(x.fechaInicio, 1);
+        while (f <= x.fechaFin) {
+          fechas.push(f);
+          f = addDays(f, 1);
+        }
+      }
+      return fechas;
+    }
+    // Minutos de un periodo que caen dentro de un día concreto; null si está abierto
+    function suenoMinutosEnDia(x, fecha) {
+      if (!x.fechaFin || !x.fin) return null;
+      const inicio = new Date(`${x.fechaInicio}T${x.inicio}`);
+      const fin = new Date(`${x.fechaFin}T${x.fin}`);
+      const from = Math.max(inicio.getTime(), new Date(`${fecha}T00:00`).getTime());
+      const to = Math.min(fin.getTime(), new Date(`${addDays(fecha, 1)}T00:00`).getTime());
+      return to > from ? Math.round((to - from) / 60000) : 0;
     }
     // Tiempo transcurrido desde la toma anterior, p. ej. "Después de 3h y 7 min"
     function formatGap(ms) {
@@ -2375,8 +2403,11 @@
         }
         periodos.sort((a, b) => (b.fechaInicio + b.inicio).localeCompare(a.fechaInicio + a.inicio));
 
+        // Un periodo que cruza la medianoche aparece en cada fecha que abarca
         const groups = {};
-        for (const x of periodos) (groups[x.fechaInicio] = groups[x.fechaInicio] || []).push(x);
+        for (const x of periodos) {
+          for (const f of fechasDePeriodo(x)) (groups[f] = groups[f] || []).push(x);
+        }
 
         // Paginación: se muestra un día por página
         const fechas = Object.keys(groups).sort((a, b) => b.localeCompare(a));
@@ -2384,7 +2415,8 @@
         const idx = fechas.indexOf(day);
 
         const items = groups[day];
-        const totalDia = items.reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
+        // El total del día cuenta solo la parte dormida ese día (sin duplicar)
+        const totalDia = items.reduce((s, x) => s + (suenoMinutosEnDia(x, day) || 0), 0);
         const byline = `${formatDuracion(totalDia)} · ${items.length} ${items.length === 1 ? "periodo" : "periodos"}`;
         renderPager(fechas, idx, byline);
 
@@ -2397,9 +2429,20 @@
             derecha = `<span class="ongoing">🌙 Actualmente dormida</span>`;
             stopBtn = `<button class="stop" data-id="${x.id}" title="Despertar ahora" aria-label="Despertar (finalizar periodo ahora)">☀️</button>`;
           } else {
-            const dias = x.fechaFin !== x.fechaInicio ? diffDias(x.fechaInicio, x.fechaFin) : 0;
-            tiempo = `${x.inicio} → ${x.fin}${dias ? ` <span class="opt">(+${dias} día${dias === 1 ? "" : "s"})</span>` : ""}`;
-            derecha = formatDuracion(min);
+            const diasAntes = diffDias(x.fechaInicio, day);  // >0 si empezó un día anterior
+            const diasDespues = diffDias(day, x.fechaFin);   // >0 si termina un día posterior
+            const iniStr = diasAntes > 0
+              ? `<span class="opt">${diasAntes === 1 ? "(día anterior)" : `(${diasAntes} días antes)`}</span> ${x.inicio}`
+              : x.inicio;
+            const finStr = diasDespues > 0
+              ? `${x.fin} <span class="opt">${diasDespues === 1 ? "(día siguiente)" : `(+${diasDespues} días)`}</span>`
+              : x.fin;
+            tiempo = `${iniStr} → ${finStr}`;
+            // En periodos que cruzan la medianoche: parte de ese día + total entre paréntesis
+            const cruzaDias = x.fechaFin !== x.fechaInicio;
+            derecha = cruzaDias
+              ? `${formatDuracion(suenoMinutosEnDia(x, day))} <span class="dur-total">(${formatDuracion(min)} en total)</span>`
+              : formatDuracion(min);
           }
           html += `<div class="toma">
             <div class="toma-info">
@@ -2435,13 +2478,17 @@
           resumen.innerHTML = '<div class="empty">Aún no hay periodos registrados.</div>';
           return;
         }
+        // Un periodo que cruza la medianoche cuenta en cada fecha que abarca
         const groups = {};
-        for (const x of periodos) (groups[x.fechaInicio] = groups[x.fechaInicio] || []).push(x);
+        for (const x of periodos) {
+          for (const f of fechasDePeriodo(x)) (groups[f] = groups[f] || []).push(x);
+        }
 
         let html = "";
         for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
           const items = groups[fecha];
-          const totalDia = items.reduce((s, x) => s + (suenoMinutos(x) || 0), 0);
+          // Solo la parte dormida ese día (sin duplicar en periodos que cruzan medianoche)
+          const totalDia = items.reduce((s, x) => s + (suenoMinutosEnDia(x, fecha) || 0), 0);
           const abierto = items.some(x => suenoMinutos(x) === null);
           html += `<div class="resumen-dia">
             <div class="resumen-fecha">${formatDayFull(fecha)}</div>
@@ -2502,7 +2549,7 @@
       pager.addEventListener("click", (e) => {
         const btn = e.target.closest(".pager-btn");
         if (!btn || btn.disabled) return;
-        const fechas = [...new Set(load(key).map(x => x.fechaInicio))].sort((a, b) => b.localeCompare(a));
+        const fechas = [...new Set(load(key).flatMap(fechasDePeriodo))].sort((a, b) => b.localeCompare(a));
         let idx = fechas.indexOf(day);
         if (idx < 0) idx = 0;
         idx = btn.dataset.dir === "older"
