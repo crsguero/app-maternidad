@@ -254,56 +254,121 @@
     /* Botones de menú: solo visibles en móvil */
     .menu-toggle, .menu-close { display: none; }
 
+    /* ---------- Navegación móvil (barra superior + menús de sección) ----------
+       Ocultas por defecto; solo se muestran en la media query de móvil. */
+    .mobile-topbar { display: none; }
+    .section-menu { display: none; }
+
+    .mtab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 14px;
+      padding: 6px 4px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .mtab-ico { font-size: 1.15rem; line-height: 1; }
+    .mtab-lbl { font-size: 0.72rem; font-weight: 700; }
+    .mtab.active { background: #efebfb; color: var(--primary-dark); }
+
+    .section-menu-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-menu-head h2 { margin: 0; font-size: 1.4rem; color: var(--text); }
+    .section-menu-close {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .section-menu-list { display: flex; flex-direction: column; gap: 10px; }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .menu-item:active { background: #f3f1fb; }
+    .menu-item-ico { font-size: 1.4rem; line-height: 1; }
+
     /* En pantallas estrechas, la barra lateral se oculta tras un icono de menú */
     @media (max-width: 720px) {
       .app { flex-direction: column; }
 
-      .menu-toggle {
+      /* El menú antiguo (☰ y barra lateral) ya no se usa en móvil */
+      .menu-toggle { display: none; }
+      .sidebar { display: none; }
+
+      /* Barra de navegación superior */
+      .mobile-topbar {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        gap: 4px;
         position: fixed;
-        top: 12px;
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
         left: 12px;
-        z-index: 60;
-        width: 44px;
-        height: 44px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        right: calc(12px + 56px + 10px); /* deja hueco al FAB (56px) */
+        height: 56px;
+        z-index: 45;
+        padding: 4px;
         background: var(--card);
-        color: var(--primary-dark);
-        font-size: 1.3rem;
-        cursor: pointer;
-        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 4px 18px rgba(90, 70, 180, 0.18);
       }
 
-      .sidebar {
+      /* FAB abajo a la derecha, alineado con la barra */
+      .fab {
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        top: auto;
+        right: 12px;
+        width: 56px;
+        height: 56px;
+        font-size: 1.9rem;
+        z-index: 45;
+      }
+
+      /* Menú de sección a pantalla completa, por DEBAJO de la barra (z 45) */
+      .section-menu {
+        display: block;
         position: fixed;
         inset: 0;
-        z-index: 100;
-        width: 100%;
-        height: 100%;
-        flex: none;
-        border: none;
-        padding: 20px;
+        z-index: 40;
+        background: var(--bg);
+        padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(86px + env(safe-area-inset-bottom, 0px));
         overflow-y: auto;
-        display: none;
       }
-      body.menu-open .sidebar { display: flex; }
-      body.menu-open { overflow: hidden; }
+      .section-menu[hidden] { display: none; }
 
-      .brand { text-align: center; padding: 4px 8px 20px; }
-      .nav { display: flex; flex-direction: column; gap: 10px; }
-      .tab { justify-content: flex-start; font-size: 1.1rem; padding: 16px 18px; }
-      .main { padding: 16px; padding-top: 12px; }
-
-      /* Título centrado y en línea con el botón de menú (alto 44px, top 12px) */
-      .toolbar.toolbar-split {
-        justify-content: center;
-        min-height: 44px;
-        margin-bottom: 16px;
+      .main {
+        padding: 16px;
+        padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
       }
-      .toolbar.toolbar-split .panel-title { text-align: center; }
+
+      .toolbar.toolbar-split { margin-bottom: 16px; }
     }
 
     .panel { display: none; }
@@ -933,6 +998,22 @@
   <div class="app" id="app-root" hidden>
     <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
     <button class="fab" id="fab-btn" aria-label="Crear nuevo registro">+</button>
+
+    <!-- Barra de navegación superior (solo móvil) -->
+    <nav class="mobile-topbar" id="mobile-topbar" aria-label="Navegación">
+      <button class="mtab active" data-sec="home"><span class="mtab-ico">🏠</span><span class="mtab-lbl">Home</span></button>
+      <button class="mtab" data-sec="bebe"><span class="mtab-ico">👶</span><span class="mtab-lbl">Bebé</span></button>
+      <button class="mtab" data-sec="mama"><span class="mtab-ico">🤱</span><span class="mtab-lbl">Mamá</span></button>
+      <button class="mtab" data-sec="more"><span class="mtab-ico">•••</span><span class="mtab-lbl">More</span></button>
+    </nav>
+
+    <!-- Menú de sección a pantalla completa (solo móvil) -->
+    <div class="section-menu" id="section-menu" hidden>
+      <div class="section-menu-head">
+        <h2 id="section-menu-title">Sección</h2>
+      </div>
+      <div class="section-menu-list" id="section-menu-list"></div>
+    </div>
     <aside class="sidebar" id="sidebar">
       <button class="menu-close" id="menu-close" aria-label="Cerrar menú">✕</button>
       <div class="brand">
@@ -943,9 +1024,9 @@
         <button class="tab active" data-panel="home"><span class="ico">📊</span> Resumen</button>
         <div class="nav-group-label">Bebé</div>
         <button class="tab" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
-        <button class="tab" data-panel="extracciones"><span class="ico">💧</span> Extracciones</button>
         <button class="tab" data-panel="panales"><span class="ico">🧷</span> Pañales</button>
         <div class="nav-group-label">Mamá</div>
+        <button class="tab" data-panel="extracciones"><span class="ico">💧</span> Extracciones</button>
         <button class="tab" data-panel="sueno"><span class="ico">😴</span> Sueño</button>
         <button class="tab" data-panel="paracetamol"><span class="ico">💊</span> Paracetamol<span class="nav-dot" id="pc-nav-dot" hidden></span></button>
       </nav>
@@ -1442,7 +1523,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v42 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v45 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -1599,6 +1680,7 @@
       document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
       tab.classList.add("active");
       target.classList.add("active");
+      updateMobileNav();
     }
 
     document.querySelectorAll(".tab").forEach(tab => {
@@ -1645,6 +1727,92 @@
     menuClose.addEventListener("click", () => setMenuOpen(false));
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && document.body.classList.contains("menu-open")) setMenuOpen(false);
+    });
+
+    /* ---------- Navegación móvil: barra superior + menús de sección ---------- */
+    const SECTIONS = {
+      bebe: { title: "Bebé", items: [
+        { panel: "tomas", ico: "🍼", label: "Tomas" },
+        { panel: "panales", ico: "🧷", label: "Pañales" }
+      ] },
+      mama: { title: "Mamá", items: [
+        { panel: "extracciones", ico: "💧", label: "Extracciones" },
+        { panel: "sueno", ico: "😴", label: "Sueño" },
+        { panel: "paracetamol", ico: "💊", label: "Paracetamol" }
+      ] },
+      more: { title: "Más", items: [
+        { action: "settings", ico: "⚙️", label: "Ajustes" }
+      ] }
+    };
+    // A qué botón de la barra corresponde cada panel
+    const PANEL_SECTION = {
+      home: "home",
+      tomas: "bebe", panales: "bebe",
+      extracciones: "mama", sueno: "mama", paracetamol: "mama"
+    };
+
+    const sectionMenu = document.getElementById("section-menu");
+    const sectionMenuTitle = document.getElementById("section-menu-title");
+    const sectionMenuList = document.getElementById("section-menu-list");
+
+    function updateMobileNav() {
+      const activePanel = document.querySelector(".panel.active");
+      const name = activePanel ? activePanel.id.replace("panel-", "") : "home";
+      const sec = PANEL_SECTION[name] || "home";
+      document.querySelectorAll(".mtab").forEach(b => {
+        b.classList.toggle("active", b.dataset.sec === sec);
+      });
+    }
+
+    function openSectionMenu(sec) {
+      const data = SECTIONS[sec];
+      if (!data) return;
+      sectionMenuTitle.textContent = data.title;
+      sectionMenuList.innerHTML = data.items.map(it =>
+        `<button class="menu-item" data-panel="${it.panel || ""}" data-action="${it.action || ""}">` +
+        `<span class="menu-item-ico">${it.ico}</span> ${it.label}</button>`
+      ).join("");
+      sectionMenu.hidden = false;
+      sectionMenu.dataset.sec = sec;
+      // Resalta en la barra el botón cuyo menú está abierto
+      document.querySelectorAll(".mtab").forEach(b => b.classList.toggle("active", b.dataset.sec === sec));
+    }
+    function closeSectionMenu() {
+      sectionMenu.hidden = true;
+      updateMobileNav(); // restaura el resaltado según la pestaña activa
+    }
+
+    document.querySelectorAll(".mtab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const sec = btn.dataset.sec;
+        if (sec === "home") {
+          activateTab("home");
+          if (db) idbSet(KEY_UI_TAB, "home").catch(() => {});
+          closeSectionMenu();
+          return;
+        }
+        // Si ya está abierto ese mismo menú, se cierra (toggle)
+        if (!sectionMenu.hidden && sectionMenu.dataset.sec === sec) {
+          closeSectionMenu();
+        } else {
+          openSectionMenu(sec);
+        }
+      });
+    });
+
+    sectionMenuList.addEventListener("click", (e) => {
+      const item = e.target.closest(".menu-item");
+      if (!item) return;
+      closeSectionMenu();
+      if (item.dataset.action === "settings") { openSettings(); return; }
+      const panel = item.dataset.panel;
+      if (panel) {
+        activateTab(panel);
+        if (db) idbSet(KEY_UI_TAB, panel).catch(() => {});
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !sectionMenu.hidden) closeSectionMenu();
     });
 
     /* ---------- Botón flotante de creación rápida ---------- */
@@ -3025,6 +3193,7 @@
       setPanalDefaults();
       renderPanal();
       updateEdad();
+      updateMobileNav();
       updateStatus();
 
       // Restaura la pestaña en la que estaba el usuario antes de recargar
