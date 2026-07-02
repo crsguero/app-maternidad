@@ -491,7 +491,7 @@
     .toolbar-split .panel-title {
       margin: 0;
       font-size: 1.25rem;
-      color: var(--primary-dark);
+      color: var(--text);
     }
     .toolbar-split .primary { width: auto; white-space: nowrap; }
 
@@ -626,7 +626,7 @@
       gap: 8px;
       font-size: 1.05rem;
       font-weight: 700;
-      color: var(--primary-dark);
+      color: var(--text);
       margin: 26px 0 12px;
     }
     .home-section-title:first-of-type { margin-top: 8px; }
@@ -642,10 +642,12 @@
     }
     .since-value { font-size: 1.6rem; font-weight: 700; color: var(--extra); }
     .since-value.muted { font-size: 1rem; font-weight: 600; color: var(--muted); }
-    .e-since:not(.muted) { color: var(--primary); }
+    .e-since:not(.muted) { color: var(--primary-dark); }
     .t-since:not(.muted) { color: var(--primary-dark); }
+    #edad-value { color: var(--primary-dark); }
     .since-value.warn-text { color: var(--danger); }
     .since-value.ok-text { color: #2f8f6e; }
+    .since-sub { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
     @media (max-width: 720px) {
       .since-value { font-size: 20px; }
     }
@@ -659,6 +661,16 @@
       background: #fbfaff;
     }
     .resumen-dia:last-child { margin-bottom: 0; }
+    .resumen-dia[data-fecha] {
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.05s;
+    }
+    .resumen-dia[data-fecha]:hover { box-shadow: 0 0 0 2px var(--primary); }
+    .resumen-dia[data-fecha]:active { transform: scale(0.995); }
+    .resumen-dia[data-fecha]:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
     .resumen-fecha {
       font-weight: 700;
       color: var(--primary-dark);
@@ -947,6 +959,11 @@
     <section class="panel active" id="panel-home">
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">📊 Resumen</h2>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Edad</div>
+        <div class="since-value" id="edad-value">—</div>
       </div>
 
       <h3 class="home-section-title">🍼 Tomas</h3>
@@ -1425,7 +1442,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v33 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v42 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -1593,6 +1610,30 @@
       });
     });
 
+    // Tarjetas del Resumen (Home): clic → van al día en el historial de su pestaña
+    function homeCardNav(containerId, panelName, goFn) {
+      const cont = document.getElementById(containerId);
+      if (!cont) return;
+      const ir = (card) => {
+        activateTab(panelName);
+        if (db) idbSet(KEY_UI_TAB, panelName).catch(() => {});
+        goFn(card.dataset.fecha);
+      };
+      cont.addEventListener("click", (e) => {
+        const card = e.target.closest(".resumen-dia[data-fecha]");
+        if (card) ir(card);
+      });
+      cont.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        const card = e.target.closest(".resumen-dia[data-fecha]");
+        if (!card) return;
+        e.preventDefault();
+        ir(card);
+      });
+    }
+    homeCardNav("home-tomas-resumen", "tomas", (f) => goToTomaDay(f));
+    homeCardNav("home-extra-resumen", "extracciones", (f) => goToExtraDay(f));
+
     /* ---------- Menú móvil ---------- */
     const menuToggle = document.getElementById("menu-toggle");
     const menuClose = document.getElementById("menu-close");
@@ -1702,6 +1743,38 @@
       tMaterna.focus();
     }
 
+    // Edad de la niña en meses y días (nació el 21 de junio de 2026)
+    const FECHA_NACIMIENTO = "2026-06-21";
+    function updateEdad() {
+      const el = document.getElementById("edad-value");
+      const sub = document.getElementById("edad-semanas");
+      if (!el) return;
+      const nac = new Date(FECHA_NACIMIENTO + "T00:00");
+      const hoy = new Date();
+      let meses = (hoy.getFullYear() - nac.getFullYear()) * 12 + (hoy.getMonth() - nac.getMonth());
+      let dias = hoy.getDate() - nac.getDate();
+      if (dias < 0) {
+        meses -= 1;
+        dias += new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate(); // días del mes anterior
+      }
+      if (meses < 0) { // aún no ha nacido / fecha futura
+        el.textContent = "—";
+        if (sub) sub.textContent = "";
+        return;
+      }
+
+      // Formato "1 mes 1 semana 1 día": las semanas salen de los días
+      // sobrantes tras los meses completos.
+      const semanas = Math.floor(dias / 7);
+      const rDias = dias % 7;
+      const parts = [];
+      if (meses) parts.push(`${meses} ${meses === 1 ? "mes" : "meses"}`);
+      if (semanas) parts.push(`${semanas} ${semanas === 1 ? "semana" : "semanas"}`);
+      if (rDias || parts.length === 0) parts.push(`${rDias} ${rDias === 1 ? "día" : "días"}`);
+      el.textContent = parts.join(" ");
+      if (sub) sub.textContent = "";
+    }
+
     function updateTomaSince() {
       const els = document.querySelectorAll(".t-since");
       if (!els.length) return;
@@ -1727,15 +1800,18 @@
     }
 
     // Tarjeta de resumen de un día de tomas
-    function tomasDiaCardHTML(fecha, items, avgGap) {
+    function tomasDiaCardHTML(fecha, items, avgGap, clickable) {
       const mlMaterna = items.reduce((s, t) => s + tomaMaterna(t), 0);
       const mlFormula = items.reduce((s, t) => s + tomaFormula(t), 0);
       const totalMl = mlMaterna + mlFormula;
       const count = items.length;
       const pctMaterna = totalMl ? Math.round((mlMaterna / totalMl) * 100) : 0;
       const pctFormula = totalMl ? 100 - pctMaterna : 0;
+      const attrs = clickable
+        ? ` data-fecha="${fecha}" role="button" tabindex="0" title="Ver este día en el historial"`
+        : "";
 
-      return `<div class="resumen-dia">
+      return `<div class="resumen-dia"${attrs}>
         <div class="resumen-head">
           <div class="resumen-fecha">${formatDayFull(fecha)}</div>
           <div class="resumen-stats">
@@ -1780,7 +1856,7 @@
 
       let html = "";
       for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
-        html += tomasDiaCardHTML(fecha, groups[fecha], avgGapDia(tomas, fecha));
+        html += tomasDiaCardHTML(fecha, groups[fecha], avgGapDia(tomas, fecha), true);
       }
       el.innerHTML = html;
     }
@@ -1793,7 +1869,7 @@
       const tomas = load(KEY_TOMAS);
       const items = tomas.filter(t => t.fecha === hoy);
       el.innerHTML = items.length
-        ? tomasDiaCardHTML(hoy, items, avgGapDia(tomas, hoy))
+        ? tomasDiaCardHTML(hoy, items, avgGapDia(tomas, hoy), true)
         : '<div class="empty">Sin tomas hoy.</div>';
     }
 
@@ -1915,6 +1991,32 @@
       renderTomas();
     });
 
+    // Ir al día seleccionado del historial desde una tarjeta del Resumen
+    function goToTomaDay(fecha) {
+      tomaDay = fecha;
+      const panel = document.getElementById("panel-tomas");
+      panel.querySelectorAll(".subtab").forEach(x => x.classList.remove("active"));
+      panel.querySelectorAll(".subpanel").forEach(p => p.classList.remove("active"));
+      const tabBtn = panel.querySelector('.subtab[data-sub="tomas-historial"]');
+      if (tabBtn) tabBtn.classList.add("active");
+      const sub = document.getElementById("sub-tomas-historial");
+      if (sub) sub.classList.add("active");
+      renderTomas();
+    }
+
+    const tResumen = document.getElementById("t-resumen");
+    tResumen.addEventListener("click", (e) => {
+      const card = e.target.closest(".resumen-dia[data-fecha]");
+      if (card) goToTomaDay(card.dataset.fecha);
+    });
+    tResumen.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const card = e.target.closest(".resumen-dia[data-fecha]");
+      if (!card) return;
+      e.preventDefault();
+      goToTomaDay(card.dataset.fecha);
+    });
+
     tNew.addEventListener("click", openTomaNew);
     tCancel.addEventListener("click", closeTomaModal);
     // Cerrar al pulsar fuera de la tarjeta (en el fondo oscuro)
@@ -2015,11 +2117,14 @@
     }
 
     // Tarjeta de resumen de un día de extracciones
-    function extraDiaCardHTML(fecha, items) {
+    function extraDiaCardHTML(fecha, items, clickable) {
       const count = items.length;
       const totalMl = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
       const incompleta = items.some(x => x.incompleto || !(Number(x.ml) > 0));
-      return `<div class="resumen-dia">
+      const attrs = clickable
+        ? ` data-fecha="${fecha}" role="button" tabindex="0" title="Ver este día en el historial"`
+        : "";
+      return `<div class="resumen-dia"${attrs}>
         <div class="resumen-fecha">${formatDayFull(fecha)}</div>
         <div class="resumen-stats">
           <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
@@ -2041,7 +2146,7 @@
 
       let html = "";
       for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
-        html += extraDiaCardHTML(fecha, groups[fecha]);
+        html += extraDiaCardHTML(fecha, groups[fecha], true);
       }
       el.innerHTML = html;
     }
@@ -2053,7 +2158,7 @@
       const hoy = todayStr();
       const items = load(KEY_EXTRA).filter(x => x.fecha === hoy);
       el.innerHTML = items.length
-        ? extraDiaCardHTML(hoy, items)
+        ? extraDiaCardHTML(hoy, items, true)
         : '<div class="empty">Sin extracciones hoy.</div>';
     }
 
@@ -2158,6 +2263,32 @@
         : Math.max(idx - 1, 0);
       extraDay = fechas[idx];
       renderExtra();
+    });
+
+    // Ir al día seleccionado del historial desde una tarjeta del Resumen
+    function goToExtraDay(fecha) {
+      extraDay = fecha;
+      const panel = document.getElementById("panel-extracciones");
+      panel.querySelectorAll(".subtab").forEach(x => x.classList.remove("active"));
+      panel.querySelectorAll(".subpanel").forEach(p => p.classList.remove("active"));
+      const tabBtn = panel.querySelector('.subtab[data-sub="extra-historial"]');
+      if (tabBtn) tabBtn.classList.add("active");
+      const sub = document.getElementById("sub-extra-historial");
+      if (sub) sub.classList.add("active");
+      renderExtra();
+    }
+
+    const eResumen = document.getElementById("e-resumen");
+    eResumen.addEventListener("click", (e) => {
+      const card = e.target.closest(".resumen-dia[data-fecha]");
+      if (card) goToExtraDay(card.dataset.fecha);
+    });
+    eResumen.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const card = e.target.closest(".resumen-dia[data-fecha]");
+      if (!card) return;
+      e.preventDefault();
+      goToExtraDay(card.dataset.fecha);
     });
 
     eNew.addEventListener("click", openExtraNew);
@@ -2893,6 +3024,7 @@
       renderPc();
       setPanalDefaults();
       renderPanal();
+      updateEdad();
       updateStatus();
 
       // Restaura la pestaña en la que estaba el usuario antes de recargar
@@ -2906,6 +3038,7 @@
         updateTomaSince();
         updateExtraSince();
         updatePcSince();
+        updateEdad();
       }, 60000);
     }
 
