@@ -1001,10 +1001,10 @@
 
     <!-- Barra de navegación superior (solo móvil) -->
     <nav class="mobile-topbar" id="mobile-topbar" aria-label="Navegación">
-      <button class="mtab active" data-sec="home"><span class="mtab-ico">🏠</span><span class="mtab-lbl">Home</span></button>
+      <button class="mtab active" data-sec="home"><span class="mtab-ico">📊</span><span class="mtab-lbl">Resumen</span></button>
       <button class="mtab" data-sec="bebe"><span class="mtab-ico">👶</span><span class="mtab-lbl">Bebé</span></button>
       <button class="mtab" data-sec="mama"><span class="mtab-ico">🤱</span><span class="mtab-lbl">Mamá</span></button>
-      <button class="mtab" data-sec="more"><span class="mtab-ico">•••</span><span class="mtab-lbl">More</span></button>
+      <button class="mtab" data-sec="more"><span class="mtab-ico">•••</span><span class="mtab-lbl">Más</span></button>
     </nav>
 
     <!-- Menú de sección a pantalla completa (solo móvil) -->
@@ -1523,7 +1523,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v45 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v47 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
