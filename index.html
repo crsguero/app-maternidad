@@ -680,6 +680,7 @@
     .toma-gap { font-size: 0.8rem; margin-top: 2px; }
     .toma-gap .gap, .toma-type .gap { color: var(--primary-dark); }
     .toma-type .ongoing { color: #9b6cd0; font-weight: 700; }
+    .toma-type.peso-perdida { color: var(--primary-dark); font-weight: 400; }
 
     .opt { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; }
     .hint { font-size: 0.8rem; color: var(--muted); margin: -4px 0 14px; }
@@ -1568,7 +1569,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v52 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v54 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -3142,6 +3143,14 @@
       if (diff < -0.05) return `Has ganado ${fmtKg(-diff)} kg`;
       return "Mismo peso que en el embarazo";
     }
+    // Días de postparto para una fecha concreta (respecto al parto)
+    function diasPostparto(fecha) {
+      const parto = new Date(FECHA_NACIMIENTO + "T00:00");
+      const d0 = new Date(parto.getFullYear(), parto.getMonth(), parto.getDate());
+      const [y, m, d] = fecha.split("-").map(Number);
+      const d1 = new Date(y, m - 1, d);
+      return Math.max(0, Math.floor((d1 - d0) / 86400000));
+    }
 
     function renderPeso() {
       const items = load(KEY_PESO);
@@ -3152,10 +3161,12 @@
       items.sort((a, b) => b.fecha.localeCompare(a.fecha));
       let html = "";
       for (const x of items) {
+        const dias = diasPostparto(x.fecha);
         html += `<div class="toma">
           <div class="toma-info">
             <div class="toma-time">${formatDayFull(x.fecha)}</div>
-            <div class="toma-type">${perdidaTexto(x.peso)}</div>
+            <div class="toma-type">${dias} ${dias === 1 ? "día" : "días"} postparto</div>
+            <div class="toma-type peso-perdida">${perdidaTexto(x.peso)}</div>
           </div>
           <div class="toma-amount">${String(x.peso).replace(".", ",")} kg</div>
           <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar peso">✎</button>
