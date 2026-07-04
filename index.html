@@ -1429,7 +1429,7 @@
             </div>
             <div class="field">
               <label for="peso-kg">Peso (kg)</label>
-              <input type="number" id="peso-kg" min="0" step="0.1" inputmode="decimal" placeholder="Ej. 65.4" required>
+              <input type="number" id="peso-kg" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 65.42" required>
             </div>
           </div>
           <div class="form-actions">
@@ -1614,7 +1614,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v57 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v59 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -2358,7 +2358,7 @@
       eFecha.value = ex.fecha;
       eHora.value = ex.hora;
       eDuracion.value = ex.duracion;
-      eMl.value = ex.ml != null && ex.ml !== "" ? ex.ml : "";
+      eMl.value = Number(ex.ml) > 0 ? ex.ml : "";
       eIncompleto.checked = !!ex.incompleto;
       eTitulo.textContent = "Editar extracción";
       eSubmit.textContent = "Actualizar extracción";
@@ -2508,7 +2508,7 @@
         fecha: eFecha.value,
         hora: eHora.value,
         duracion: eDuracion.value,
-        ml: Number(eMl.value) || 0,
+        ml: eMl.value.trim() === "" ? "" : Number(eMl.value),
         incompleto: eIncompleto.checked
       };
       const extras = load(KEY_EXTRA);
