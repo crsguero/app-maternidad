@@ -560,6 +560,54 @@
     }
     .toolbar-split .primary { width: auto; white-space: nowrap; }
 
+    .info-btn {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--card);
+      font-size: 1.05rem;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+    }
+    .info-btn:hover { background: #f3f1fb; }
+
+    .info-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .info-head h2 { margin: 0; font-size: 1.15rem; }
+
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table th {
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+    }
+    .info-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.92rem;
+    }
+    .info-table td:last-child { font-weight: 700; white-space: nowrap; }
+    .info-table tr:last-child td { border-bottom: none; }
+    .info-table td:first-child {
+      font-weight: 700;
+      color: var(--primary-dark);
+      white-space: nowrap;
+    }
+
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -728,6 +776,17 @@
       background: #fbfaff;
     }
     .resumen-dia:last-child { margin-bottom: 0; }
+    .rango-row { margin: 6px 0 10px; }
+    .rango-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .rango-badge.ok { color: #2f8f6e; background: rgba(59, 184, 154, 0.16); }
+    .rango-badge.bajo { color: #b5730f; background: rgba(224, 161, 74, 0.20); }
+    .rango-badge.alto { color: var(--danger); background: rgba(224, 90, 90, 0.15); }
     .resumen-dia[data-fecha] {
       cursor: pointer;
       transition: box-shadow 0.15s, transform 0.05s;
@@ -1070,6 +1129,30 @@
     <section class="panel" id="panel-tomas">
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">🍼 Tomas</h2>
+        <button type="button" class="info-btn" id="t-info-btn" title="Cantidades orientativas" aria-label="Cantidades orientativas por edad">ℹ️</button>
+      </div>
+
+      <div class="modal-overlay" id="t-info-modal" hidden>
+        <div class="modal-box card">
+          <div class="info-head">
+            <h2>Cantidades orientativas por edad</h2>
+            <button type="button" class="section-menu-close" id="t-info-close" aria-label="Cerrar">✕</button>
+          </div>
+          <table class="info-table">
+            <thead>
+              <tr><th>Edad</th><th>Por toma</th><th>Total/día</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>2ª semana</td><td>80-90 ml/toma (7-8 tomas/día)</td><td>560-720</td></tr>
+              <tr><td>3ª semana</td><td>90-100 ml/toma (7-8 tomas/día)</td><td>630-800</td></tr>
+              <tr><td>4ª semana</td><td>100-120 ml/toma (7-8 tomas/día)</td><td>700-960</td></tr>
+              <tr><td>2º mes</td><td>120-150 ml/toma (7 tomas/día)</td><td>840-1050</td></tr>
+              <tr><td>3º mes</td><td>150-180 ml/toma (6 tomas/día)</td><td>900-1080</td></tr>
+              <tr><td>4º mes</td><td>180-210 ml/toma (5 tomas/día)</td><td>900-1050</td></tr>
+              <tr><td>5º mes</td><td>210-250 ml/toma (4-5 tomas/día)</td><td>840-1250</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="modal-overlay" id="t-modal" hidden>
@@ -1614,7 +1697,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v59 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v63 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -2074,6 +2157,19 @@
     }
 
     // Tarjeta de resumen de un día de tomas
+    // Rango orientativo de ml/día según la edad de la niña (nació FECHA_NACIMIENTO)
+    function rangoTotalDia(fecha) {
+      const dias = diasPostparto(fecha);
+      if (dias >= 7 && dias <= 13) return { min: 560, max: 720 };   // 2ª semana
+      if (dias >= 14 && dias <= 20) return { min: 630, max: 800 };  // 3ª semana
+      if (dias >= 21 && dias <= 27) return { min: 700, max: 960 };  // 4ª semana
+      if (dias >= 28 && dias <= 59) return { min: 840, max: 1050 }; // 2º mes
+      if (dias >= 60 && dias <= 89) return { min: 900, max: 1080 }; // 3º mes
+      if (dias >= 90 && dias <= 119) return { min: 900, max: 1050 };// 4º mes
+      if (dias >= 120 && dias <= 149) return { min: 840, max: 1250 };// 5º mes
+      return null; // 1ª semana o más de 5 meses: sin referencia
+    }
+
     function tomasDiaCardHTML(fecha, items, avgGap, clickable) {
       const mlMaterna = items.reduce((s, t) => s + tomaMaterna(t), 0);
       const mlFormula = items.reduce((s, t) => s + tomaFormula(t), 0);
@@ -2085,6 +2181,17 @@
         ? ` data-fecha="${fecha}" role="button" tabindex="0" title="Ver este día en el historial"`
         : "";
 
+      // Comparación del total del día con el rango recomendado por edad
+      const rango = rangoTotalDia(fecha);
+      let badge = "";
+      if (rango) {
+        let cls, label;
+        if (totalMl < rango.min) { cls = "bajo"; label = "Por debajo"; }
+        else if (totalMl > rango.max) { cls = "alto"; label = "Por encima"; }
+        else { cls = "ok"; label = "En rango"; }
+        badge = `<div class="rango-row"><span class="rango-badge ${cls}" title="Rango recomendado para esta edad: ${rango.min}-${rango.max} ml/día">${label} · ${rango.min}-${rango.max} ml</span></div>`;
+      }
+
       return `<div class="resumen-dia"${attrs}>
         <div class="resumen-head">
           <div class="resumen-fecha">${formatDayFull(fecha)}</div>
@@ -2094,6 +2201,7 @@
             ${avgGap ? `<span class="stat-val">Cada ${avgGap}</span>` : ""}
           </div>
         </div>
+        ${badge}
         <div class="pct-bar">
           <div class="pct-materna" style="width:${pctMaterna}%"></div>
           <div class="pct-formula" style="width:${pctFormula}%"></div>
@@ -2289,6 +2397,17 @@
       if (!card) return;
       e.preventDefault();
       goToTomaDay(card.dataset.fecha);
+    });
+
+    // Modal de información (cantidades orientativas por edad)
+    const tInfoBtn = document.getElementById("t-info-btn");
+    const tInfoModal = document.getElementById("t-info-modal");
+    const tInfoClose = document.getElementById("t-info-close");
+    tInfoBtn.addEventListener("click", () => { tInfoModal.hidden = false; });
+    tInfoClose.addEventListener("click", () => { tInfoModal.hidden = true; });
+    tInfoModal.addEventListener("click", (e) => { if (e.target === tInfoModal) tInfoModal.hidden = true; });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !tInfoModal.hidden) tInfoModal.hidden = true;
     });
 
     tNew.addEventListener("click", openTomaNew);
