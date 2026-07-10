@@ -576,6 +576,69 @@
     }
     .info-btn:hover { background: #f3f1fb; }
 
+    .form-select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      background: #fbfaff;
+      color: var(--text);
+      font-family: inherit;
+    }
+    .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124, 108, 224, 0.15);
+    }
+
+    .mood-group { display: flex; gap: 8px; }
+    .mood-btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 1.5rem;
+      line-height: 1;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fbfaff;
+      cursor: pointer;
+      opacity: 0.55;
+      filter: grayscale(0.5);
+      transition: all 0.15s;
+    }
+    .mood-btn:hover { opacity: 0.85; }
+    .mood-btn.selected { opacity: 1; filter: none; }
+    .mood-btn.selected[data-animo="feliz"] { border-color: #2f8f6e; background: rgba(59, 184, 154, 0.16); }
+    .mood-btn.selected[data-animo="neutra"] { border-color: #e0a14a; background: rgba(224, 161, 74, 0.18); }
+    .mood-btn.selected[data-animo="triste"] { border-color: var(--danger); background: rgba(224, 90, 90, 0.15); }
+
+    /* Botones del formulario de Extracción: mismo ancho y 24px de espacio arriba */
+    #form-extra .form-actions { margin-top: 48px; }
+    #form-extra .form-actions .primary,
+    #form-extra .form-actions .secondary { flex: 1; width: auto; }
+
+    .danger-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid rgba(224, 90, 90, 0.4);
+      border-radius: 10px;
+      background: rgba(224, 90, 90, 0.08);
+      color: var(--danger);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .danger-btn:hover { background: rgba(224, 90, 90, 0.16); }
+    .danger-btn[hidden] { display: none; }
+
+    .toma.toma-clickable { cursor: pointer; padding-right: 24px; }
+    .toma-clickable:hover { border-color: var(--primary); background: #f7f5ff; }
+
+    .mood-ico { font-size: 1.35rem; line-height: 1; flex: none; }
+    .toma-motivo { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
     .info-head {
       display: flex;
       align-items: center;
@@ -601,6 +664,24 @@
       font-size: 0.92rem;
     }
     .info-table td:last-child { font-weight: 700; white-space: nowrap; }
+
+    .horas-list { list-style: none; margin: 0; padding: 0; }
+    .horas-list li {
+      padding: 12px 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+    .horas-list li:last-child { border-bottom: none; }
+
+    .pct-bar .mood-feliz { background: #2f8f6e; }
+    .pct-bar .mood-neutra { background: #e0a14a; }
+    .pct-bar .mood-triste { background: var(--danger); }
+    .mood-legend { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 0.9rem; }
+    .mood-legend .stat-zero { color: var(--muted); }
+    .mood-legend .stat-pct { font-weight: 700; }
+    .mood-sub { margin: 22px 0 4px; font-size: 1rem; color: var(--text); }
     .info-table tr:last-child td { border-bottom: none; }
     .info-table td:first-child {
       font-weight: 700;
@@ -1224,6 +1305,23 @@
     <section class="panel" id="panel-extracciones">
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">💧 Extracciones</h2>
+        <button type="button" class="info-btn" id="e-info-btn" title="Horario de extracciones" aria-label="Horario de extracciones">ℹ️</button>
+      </div>
+
+      <div class="modal-overlay" id="e-info-modal" hidden>
+        <div class="modal-box card">
+          <div class="info-head">
+            <h2>Horario de extracciones</h2>
+            <button type="button" class="section-menu-close" id="e-info-close" aria-label="Cerrar">✕</button>
+          </div>
+          <ul class="horas-list">
+            <li>3:00</li>
+            <li>7:50</li>
+            <li>12:40</li>
+            <li>17:30</li>
+            <li>22:10</li>
+          </ul>
+        </div>
       </div>
 
       <div class="modal-overlay" id="e-modal" hidden>
@@ -1252,15 +1350,30 @@
             </div>
           </div>
 
-          <label class="check-label">
-            <input type="checkbox" id="e-incompleto">
-            Cantidad incompleta
-          </label>
+          <div class="field">
+            <label>Estado de ánimo</label>
+            <div class="mood-group" id="e-mood">
+              <button type="button" class="mood-btn" data-animo="feliz" title="Bien" aria-label="Bien">😊</button>
+              <button type="button" class="mood-btn" data-animo="neutra" title="Regular" aria-label="Regular">😐</button>
+              <button type="button" class="mood-btn" data-animo="triste" title="Mal" aria-label="Mal">😢</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="e-motivo">Motivo</label>
+            <select id="e-motivo" class="form-select">
+              <option value="">Sin motivo</option>
+              <option value="Incapacidad para actuar">Incapacidad para actuar</option>
+              <option value="Coincidencia con una toma">Coincidencia con una toma</option>
+              <option value="Desperdicio de leche">Desperdicio de leche</option>
+            </select>
+          </div>
 
           <div class="form-actions">
-            <button type="submit" class="primary" id="e-submit">Guardar extracción</button>
             <button type="button" class="secondary" id="e-cancel">Cancelar</button>
+            <button type="submit" class="primary" id="e-submit">Guardar</button>
           </div>
+          <button type="button" class="danger-btn" id="e-delete" hidden>Eliminar extracción</button>
         </form>
         </div>
       </div>
@@ -1290,8 +1403,20 @@
         <div class="card">
           <div class="list-head">
             <h2>Resumen por día</h2>
+            <button type="button" class="info-btn" id="e-mood-btn" title="Estado de ánimo" aria-label="Estado de ánimo de las extracciones">🙂</button>
           </div>
+          <div class="pager" id="e-resumen-pager"></div>
           <div id="e-resumen"></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="e-mood-modal" hidden>
+        <div class="modal-box card">
+          <div class="info-head">
+            <h2>Estado de ánimo</h2>
+            <button type="button" class="section-menu-close" id="e-mood-close" aria-label="Cerrar">✕</button>
+          </div>
+          <div id="e-mood-content"></div>
         </div>
       </div>
     </section>
@@ -1697,7 +1822,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v63 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v85 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -1746,6 +1871,16 @@
       const dia = dt.toLocaleDateString("es-ES", { weekday: "long" });
       const mes = dt.toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
       return `${dia.charAt(0).toUpperCase() + dia.slice(1)}, ${d} ${mes.charAt(0).toUpperCase() + mes.slice(1)} ${y}`;
+    }
+    // Formato abreviado "Mié, 8 jul 2026" (con Hoy/Ayer)
+    function formatDayAbrev(fecha) {
+      if (fecha === todayStr()) return "Hoy";
+      if (fecha === yesterdayStr()) return "Ayer";
+      const [y, m, d] = fecha.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const dia = dt.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "");
+      const mes = dt.toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+      return `${dia.charAt(0).toUpperCase() + dia.slice(1)}, ${d} ${mes} ${y}`;
     }
     // Formato corto "24 Jun 2026" (con Hoy/Ayer)
     function formatDayShort(fecha) {
@@ -2410,6 +2545,88 @@
       if (e.key === "Escape" && !tInfoModal.hidden) tInfoModal.hidden = true;
     });
 
+    // Modal de información de Extracciones (horario)
+    const eInfoBtn = document.getElementById("e-info-btn");
+    const eInfoModal = document.getElementById("e-info-modal");
+    const eInfoClose = document.getElementById("e-info-close");
+    eInfoBtn.addEventListener("click", () => { eInfoModal.hidden = false; });
+    eInfoClose.addEventListener("click", () => { eInfoModal.hidden = true; });
+    eInfoModal.addEventListener("click", (e) => { if (e.target === eInfoModal) eInfoModal.hidden = true; });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !eInfoModal.hidden) eInfoModal.hidden = true;
+    });
+
+    // Modal de estado de ánimo (proporción de caras en las extracciones)
+    const eMoodBtn = document.getElementById("e-mood-btn");
+    const eMoodModal = document.getElementById("e-mood-modal");
+    const eMoodClose = document.getElementById("e-mood-close");
+    function renderMoodModal() {
+      const el = document.getElementById("e-mood-content");
+      const extras = load(KEY_EXTRA);
+      if (extras.length === 0) {
+        el.innerHTML = '<div class="empty">Aún no hay extracciones.</div>';
+        return;
+      }
+      // Porción de valor: si es 0, todo gris; si no, el porcentaje en negrita
+      const statVal = (p, n) => n === 0
+        ? `<span class="stat-zero">${p}% (${n})</span>`
+        : `<span class="stat-pct">${p}%</span> (${n})`;
+
+      // --- Barra de ánimo (sobre las extracciones con cara marcada) ---
+      const conAnimo = extras.filter(x =>
+        x.animo === "feliz" || x.animo === "neutra" || x.animo === "triste");
+      let moodHtml;
+      if (conAnimo.length === 0) {
+        moodHtml = '<div class="empty">Aún no has marcado ninguna cara.</div>';
+      } else {
+        const c = { feliz: 0, neutra: 0, triste: 0 };
+        for (const x of conAnimo) c[x.animo]++;
+        const t = conAnimo.length;
+        const pct = k => Math.round((c[k] / t) * 100);
+        const w = k => (c[k] / t) * 100;
+        moodHtml =
+          `<div class="pct-bar">` +
+            `<div class="mood-feliz" style="width:${w("feliz")}%"></div>` +
+            `<div class="mood-neutra" style="width:${w("neutra")}%"></div>` +
+            `<div class="mood-triste" style="width:${w("triste")}%"></div>` +
+          `</div>` +
+          `<div class="mood-legend">` +
+            `<span>😊 Bien — ${statVal(pct("feliz"), c.feliz)}</span>` +
+            `<span>😐 Regular — ${statVal(pct("neutra"), c.neutra)}</span>` +
+            `<span>😢 Mal — ${statVal(pct("triste"), c.triste)}</span>` +
+          `</div>`;
+      }
+
+      // --- Motivos (solo sobre las extracciones con cara marcada; sin motivo = todo fue bien) ---
+      let motivoHtml = "";
+      if (conAnimo.length > 0) {
+        const motivos = [
+          { label: "Todo fue bien", match: x => !x.motivo },
+          { label: "Incapacidad para actuar", match: x => x.motivo === "Incapacidad para actuar" },
+          { label: "Coincidencia con una toma", match: x => x.motivo === "Coincidencia con una toma" },
+          { label: "Desperdicio de leche", match: x => x.motivo === "Desperdicio de leche" }
+        ];
+        const totalE = conAnimo.length;
+        const filas = motivos
+          .map(m => ({ label: m.label, n: conAnimo.filter(m.match).length }))
+          .sort((a, b) => b.n - a.n); // de más usados a menos
+        motivoHtml = `<h3 class="mood-sub">Motivos</h3><div class="mood-legend">`;
+        for (const f of filas) {
+          const p = Math.round((f.n / totalE) * 100);
+          motivoHtml += `<span>${f.label} — ${statVal(p, f.n)}</span>`;
+        }
+        motivoHtml += `</div>`;
+      }
+
+      el.innerHTML = moodHtml + motivoHtml;
+    }
+    eMoodBtn.addEventListener("click", () => { renderMoodModal(); eMoodModal.hidden = false; });
+    eMoodClose.addEventListener("click", () => { eMoodModal.hidden = true; });
+    eMoodModal.addEventListener("click", (e) => { if (e.target === eMoodModal) eMoodModal.hidden = true; });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !eMoodModal.hidden) eMoodModal.hidden = true;
+    });
+
     tNew.addEventListener("click", openTomaNew);
     tCancel.addEventListener("click", closeTomaModal);
     // Cerrar al pulsar fuera de la tarjeta (en el fondo oscuro)
@@ -2438,15 +2655,32 @@
     const eHora = document.getElementById("e-hora");
     const eDuracion = document.getElementById("e-duracion");
     const eMl = document.getElementById("e-ml");
-    const eIncompleto = document.getElementById("e-incompleto");
     const eList = document.getElementById("e-list");
     const eTitulo = document.getElementById("e-titulo");
     const eSubmit = document.getElementById("e-submit");
     const eCancel = document.getElementById("e-cancel");
     const eNew = document.getElementById("e-new");
     const eModal = document.getElementById("e-modal");
+    const eMood = document.getElementById("e-mood");
+    const eMotivo = document.getElementById("e-motivo");
+    const eDelete = document.getElementById("e-delete");
     let editExtraId = null;
     let extraDay = null; // día (fecha) que se muestra en el historial paginado
+    let extraResumenWeek = null; // inicio de la semana mostrada en el resumen paginado
+
+    function setMood(animo) {
+      eMood.querySelectorAll(".mood-btn").forEach(b =>
+        b.classList.toggle("selected", b.dataset.animo === animo));
+    }
+    function getMood() {
+      const sel = eMood.querySelector(".mood-btn.selected");
+      return sel ? sel.dataset.animo : "";
+    }
+    eMood.querySelectorAll(".mood-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        setMood(b.classList.contains("selected") ? "" : b.dataset.animo);
+      });
+    });
 
     function setExtraDefaults() {
       eFecha.value = todayStr();
@@ -2461,10 +2695,12 @@
     function openExtraNew() {
       editExtraId = null;
       eTitulo.textContent = "Nueva extracción";
-      eSubmit.textContent = "Guardar extracción";
+      eSubmit.textContent = "Guardar";
       eDuracion.value = "";
       eMl.value = "";
-      eIncompleto.checked = false;
+      setMood("");
+      eMotivo.value = "";
+      eDelete.hidden = true;
       setExtraDefaults();
       eModal.hidden = false;
       eDuracion.focus();
@@ -2478,9 +2714,11 @@
       eHora.value = ex.hora;
       eDuracion.value = ex.duracion;
       eMl.value = Number(ex.ml) > 0 ? ex.ml : "";
-      eIncompleto.checked = !!ex.incompleto;
+      setMood(ex.animo || "");
+      eMotivo.value = ex.motivo || "";
+      eDelete.hidden = false;
       eTitulo.textContent = "Editar extracción";
-      eSubmit.textContent = "Actualizar extracción";
+      eSubmit.textContent = "Actualizar";
       eModal.hidden = false;
       eDuracion.focus();
     }
@@ -2514,31 +2752,87 @@
       const count = items.length;
       const totalMl = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
       const incompleta = items.some(x => x.incompleto || !(Number(x.ml) > 0));
+      // Media por extracción: solo sobre las que tienen cantidad registrada
+      const conMl = items.filter(x => Number(x.ml) > 0);
+      const media = conMl.length ? Math.round(totalMl / conMl.length) : null;
       const attrs = clickable
         ? ` data-fecha="${fecha}" role="button" tabindex="0" title="Ver este día en el historial"`
         : "";
       return `<div class="resumen-dia"${attrs}>
-        <div class="resumen-fecha">${formatDayFull(fecha)}</div>
+        <div class="resumen-fecha">${formatDayAbrev(fecha)}</div>
         <div class="resumen-stats">
           <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
           <div class="stat"><div class="stat-val">${incompleta ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${totalMl} ml</div><div class="stat-lbl">Total</div></div>
+          <div class="stat"><div class="stat-val">${media != null ? `${media} ml` : "—"}</div><div class="stat-lbl">Media/extr.</div></div>
         </div>
       </div>`;
     }
 
+    // --- Semanas (Semana 1 = 22-28 jun 2026) ---
+    const SEMANA_ANCHOR = "2026-06-22";
+    function weekStart(fecha) {
+      const idx = Math.floor(diffDias(SEMANA_ANCHOR, fecha) / 7);
+      return addDays(SEMANA_ANCHOR, idx * 7);
+    }
+    function weekNumber(start) {
+      return Math.floor(diffDias(SEMANA_ANCHOR, start) / 7) + 1;
+    }
+    function rangoSemanaTexto(start) {
+      const end = addDays(start, 6);
+      const mesDe = f => {
+        const [y, m, d] = f.split("-").map(Number);
+        return { d, y, mes: new Date(y, m - 1, d).toLocaleDateString("es-ES", { month: "short" }).replace(".", "") };
+      };
+      const s = mesDe(start), e = mesDe(end);
+      return s.mes === e.mes
+        ? `${s.d}-${e.d} ${e.mes} ${e.y}`
+        : `${s.d} ${s.mes} - ${e.d} ${e.mes} ${e.y}`;
+    }
+
+    function renderResumenSemanaPager(semanas, idx) {
+      const pager = document.getElementById("e-resumen-pager");
+      if (!pager) return;
+      if (semanas.length === 0) { pager.innerHTML = ""; return; }
+      const start = semanas[idx];
+      const num = weekNumber(start);
+      const atNewest = idx <= 0;
+      const atOldest = idx >= semanas.length - 1;
+      pager.innerHTML =
+        `<button class="pager-btn" data-dir="older" title="Semana anterior" aria-label="Semana anterior" ${atOldest ? "disabled" : ""}>❮</button>` +
+        `<div class="pager-center">` +
+          `<span class="pager-label">${num >= 1 ? "Semana " + num : "Antes de la semana 1"}</span>` +
+          `<span class="pager-byline">${rangoSemanaTexto(start)}</span>` +
+        `</div>` +
+        `<button class="pager-btn" data-dir="newer" title="Semana siguiente" aria-label="Semana siguiente" ${atNewest ? "disabled" : ""}>❯</button>`;
+    }
+
     function renderExtraResumen() {
       const el = document.getElementById("e-resumen");
+      const pager = document.getElementById("e-resumen-pager");
       if (!el) return;
       const extras = load(KEY_EXTRA);
       if (extras.length === 0) {
         el.innerHTML = '<div class="empty">Aún no hay extracciones registradas.</div>';
+        if (pager) pager.innerHTML = "";
         return;
       }
       const groups = {};
       for (const x of extras) (groups[x.fecha] = groups[x.fecha] || []).push(x);
+      const dias = Object.keys(groups);
+
+      // Semanas con datos (por su fecha de inicio), de más reciente a más antigua
+      const semanas = [...new Set(dias.map(weekStart))].sort((a, b) => b.localeCompare(a));
+      if (!semanas.includes(extraResumenWeek)) extraResumenWeek = semanas[0];
+      const idx = semanas.indexOf(extraResumenWeek);
+      renderResumenSemanaPager(semanas, idx);
+
+      // Días de la semana seleccionada (con datos), de más reciente a más antiguo
+      const diasSemana = dias
+        .filter(f => weekStart(f) === extraResumenWeek)
+        .sort((a, b) => b.localeCompare(a));
 
       let html = "";
-      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+      for (const fecha of diasSemana) {
         html += extraDiaCardHTML(fecha, groups[fecha], true);
       }
       el.innerHTML = html;
@@ -2590,17 +2884,19 @@
       const byline = `${items.length} ${items.length === 1 ? "extracción" : "extracciones"} · ${totalMl} ml${incompleta ? " (incompleta)" : ""}`;
       renderExtraPager(fechas, idx, byline);
 
+      const moodIco = { feliz: "😊", neutra: "😐", triste: "😢" };
+      const moodLabel = { feliz: "Bien", neutra: "Regular", triste: "Mal" };
       let html = `<div class="day-group">`;
       for (const x of items) {
-        html += `<div class="toma">
+        html += `<div class="toma toma-clickable" data-id="${x.id}" title="Editar extracción">
+            ${x.animo ? `<span class="mood-ico" title="${moodLabel[x.animo] || ""}">${moodIco[x.animo] || ""}</span>` : ""}
             <div class="toma-info">
               <div class="toma-time">${x.hora}</div>
               <div class="toma-dur">${formatDuracion(x.duracion)}</div>
               <div class="toma-type">${gapById[x.id] ? `<span class="accent">${gapById[x.id]}</span>` : "Extracción"}</div>
+              ${x.motivo ? `<div class="toma-motivo">${x.motivo}</div>` : ""}
             </div>
             <div class="toma-amount">${x.ml ? `${x.incompleto ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${x.ml} ml` : ""}</div>
-            <button class="edit" data-id="${x.id}" title="Editar" aria-label="Editar extracción">✎</button>
-            <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar extracción">✕</button>
           </div>`;
       }
       html += "</div>";
@@ -2628,7 +2924,8 @@
         hora: eHora.value,
         duracion: eDuracion.value,
         ml: eMl.value.trim() === "" ? "" : Number(eMl.value),
-        incompleto: eIncompleto.checked
+        animo: getMood(),
+        motivo: eMotivo.value
       };
       const extras = load(KEY_EXTRA);
       if (editExtraId) {
@@ -2684,6 +2981,20 @@
       goToExtraDay(card.dataset.fecha);
     });
 
+    // Paginador semanal del Resumen
+    document.getElementById("e-resumen-pager").addEventListener("click", (e) => {
+      const btn = e.target.closest(".pager-btn");
+      if (!btn || btn.disabled) return;
+      const semanas = [...new Set(load(KEY_EXTRA).map(x => weekStart(x.fecha)))].sort((a, b) => b.localeCompare(a));
+      let idx = semanas.indexOf(extraResumenWeek);
+      if (idx < 0) idx = 0;
+      idx = btn.dataset.dir === "older"
+        ? Math.min(idx + 1, semanas.length - 1)
+        : Math.max(idx - 1, 0);
+      extraResumenWeek = semanas[idx];
+      renderExtraResumen();
+    });
+
     eNew.addEventListener("click", openExtraNew);
     eCancel.addEventListener("click", closeExtraModal);
     // Cerrar al pulsar fuera de la tarjeta (en el fondo oscuro)
@@ -2696,12 +3007,17 @@
     });
 
     eList.addEventListener("click", (e) => {
-      const editBtn = e.target.closest(".edit");
-      if (editBtn) { startExtraEdit(editBtn.dataset.id); return; }
-      const btn = e.target.closest(".del");
-      if (!btn) return;
+      // Clic en la fila → abrir el modal de edición
+      const row = e.target.closest(".toma");
+      if (row && row.dataset.id) startExtraEdit(row.dataset.id);
+    });
+
+    // Botón "Eliminar" dentro del modal de edición
+    eDelete.addEventListener("click", () => {
+      if (!editExtraId) return;
       if (!confirm("¿Eliminar esta extracción?")) return;
-      save(KEY_EXTRA, load(KEY_EXTRA).filter(x => x.id !== btn.dataset.id));
+      save(KEY_EXTRA, load(KEY_EXTRA).filter(x => x.id !== editExtraId));
+      closeExtraModal();
       renderExtra();
       updateStatus();
     });
@@ -3697,6 +4013,19 @@
             return x;
           });
           if (changed) save(key, cache[key]);
+        }
+
+        // Migración del motivo de extracción renombrado
+        {
+          let changed = false;
+          cache[KEY_EXTRA] = cache[KEY_EXTRA].map(x => {
+            if (x.motivo === "Incapacidad de actuar ante algo que surge") {
+              changed = true;
+              return Object.assign({}, x, { motivo: "Incapacidad para actuar" });
+            }
+            return x;
+          });
+          if (changed) save(KEY_EXTRA, cache[KEY_EXTRA]);
         }
       } catch (e) {
         showError("No se pudo abrir la base de datos: " + (e && e.message));
