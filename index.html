@@ -848,6 +848,7 @@
     .since-value { font-size: 1.6rem; font-weight: 700; color: var(--extra); }
     .since-value.muted { font-size: 1rem; font-weight: 600; color: var(--muted); }
     .e-since:not(.muted) { color: var(--primary-dark); }
+    #e-next:not(.muted) { color: var(--primary-dark); }
     .t-since:not(.muted) { color: var(--primary-dark); }
     #edad-value { color: var(--primary-dark); }
     #cuarentena-value { color: var(--primary-dark); }
@@ -1395,6 +1396,11 @@
         <div class="since-value e-since">—</div>
       </div>
 
+      <div class="card since-card">
+        <div class="since-label">Próxima extracción</div>
+        <div class="since-value" id="e-next">—</div>
+      </div>
+
       <div class="subtabs">
         <button class="subtab active" data-sub="extra-historial">Historial</button>
         <button class="subtab" data-sub="extra-resumen">Resumen</button>
@@ -1885,7 +1891,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v90 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v91 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -2812,6 +2818,40 @@
       });
     }
 
+    // Hora recomendada para la próxima extracción del día.
+    // 5 extracciones/día; la última siempre a las 22:10; las que quedan se
+    // reparten equidistantes entre la última registrada hoy y las 22:10.
+    function updateNextExtraction() {
+      const el = document.getElementById("e-next");
+      if (!el) return;
+      const FIN = 22 * 60 + 10;   // 22:10 en minutos
+      const PRIMERA = 3 * 60;     // 3:00, la primera del día
+      const TOTAL = 5;
+      const fmt = min => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
+
+      const hoy = todayStr();
+      const hoyExtras = load(KEY_EXTRA).filter(x => x.fecha === hoy);
+      const n = hoyExtras.length;
+
+      el.classList.remove("muted");
+      if (n === 0) { el.textContent = fmt(PRIMERA); return; }        // aún ninguna hoy → 3:00
+      if (n >= TOTAL) {                                              // ya hechas las 5
+        el.textContent = "Completadas las 5 de hoy";
+        el.classList.add("muted");
+        return;
+      }
+      // Hora (en minutos) de la última extracción de hoy
+      let ultima = -1;
+      for (const x of hoyExtras) {
+        const [h, m] = x.hora.split(":").map(Number);
+        ultima = Math.max(ultima, h * 60 + m);
+      }
+      const restantes = TOTAL - n;                 // incluye la de las 22:10
+      const paso = (FIN - ultima) / restantes;
+      const proxima = paso <= 0 ? FIN : Math.round(ultima + paso);
+      el.textContent = fmt(Math.min(proxima, FIN));
+    }
+
     // Tarjeta de resumen de un día de extracciones
     function extraDiaCardHTML(fecha, items, clickable) {
       const count = items.length;
@@ -2916,6 +2956,7 @@
 
     function renderExtra() {
       updateExtraSince();
+      updateNextExtraction();
       renderExtraResumen();
       renderHomeExtra();
       const extras = load(KEY_EXTRA);
@@ -4301,6 +4342,7 @@
       setInterval(() => {
         updateTomaSince();
         updateExtraSince();
+        updateNextExtraction();
         updatePcSince();
         updateHiSince();
         updateBanoSince();
