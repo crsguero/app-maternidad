@@ -422,6 +422,7 @@
       letter-spacing: 0.03em;
     }
 
+    input[type="text"],
     input[type="date"],
     input[type="time"],
     input[type="number"] {
@@ -849,6 +850,7 @@
     .since-value.muted { font-size: 1rem; font-weight: 600; color: var(--muted); }
     .e-since:not(.muted) { color: var(--primary-dark); }
     #e-next:not(.muted) { color: var(--primary-dark); }
+    #pc-next:not(.muted) { color: var(--primary-dark); }
     .t-since:not(.muted) { color: var(--primary-dark); }
     #edad-value { color: var(--primary-dark); }
     #cuarentena-value { color: var(--primary-dark); }
@@ -1070,6 +1072,125 @@
     }
     .stop:hover { color: #2f8f6e; background: rgba(47,143,110,0.12); }
 
+    /* ---------- Tareas ---------- */
+    .tarea {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      background: #fbfaff;
+    }
+    .tarea:last-child { margin-bottom: 0; }
+    .tarea input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .tarea-txt {
+      flex: 1;
+      min-width: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .tarea.done { background: #f6f5fb; }
+    .tarea.done .tarea-txt { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+
+    /* Grupos de tareas por extracción (modal) */
+    .te-group { margin-bottom: 20px; }
+    .te-group:last-child { margin-bottom: 0; }
+    .te-group-head {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .te-group-head .te-num {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+    .te-group-head .te-hora {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .te-add { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+    .te-add input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: #fbfaff;
+      color: var(--text);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .te-add button {
+      flex: none;
+      width: 42px;
+      border: 1px solid var(--primary);
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1.3rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .te-add button:hover { background: var(--primary-dark); }
+    .te-empty { font-size: 0.85rem; color: var(--muted); padding: 2px 2px 4px; }
+    .tarea-src { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-top: 2px; }
+    .tarea.done .tarea-src { text-decoration: none; }
+    .tarea-drag {
+      flex: none;
+      cursor: grab;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0 2px;
+      touch-action: none; /* permite arrastrar en táctil sin hacer scroll */
+      user-select: none;
+    }
+    .tarea-drag:active { cursor: grabbing; }
+    .tarea.dragging { opacity: 0.6; box-shadow: 0 4px 12px rgba(40, 30, 80, 0.15); }
+
+    /* Tarjeta "Completadas" (plegable) */
+    .completadas-head {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: var(--text);
+      font: inherit;
+      text-align: left;
+    }
+    .completadas-head h2 { margin: 0; }
+    .completadas-count {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--primary);
+      border-radius: 999px;
+      padding: 1px 9px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .completadas-chevron { color: var(--muted); font-size: 0.9rem; transition: transform 0.15s; }
+    .completadas-head[aria-expanded="true"] .completadas-chevron { transform: rotate(180deg); }
+    #completadas-body { margin-top: 14px; }
+    #completadas-list { max-height: 340px; overflow-y: auto; }
+
     .status {
       text-align: center;
       font-size: 0.8rem;
@@ -1186,6 +1307,7 @@
         <button class="tab" data-panel="postparto"><span class="ico">🌸</span> Postparto</button>
         <button class="tab" data-panel="hierro"><span class="ico">💊</span> Hierro<span class="nav-dot" id="hi-nav-dot" hidden></span></button>
         <button class="tab" data-panel="paracetamol"><span class="ico">💊</span> Paracetamol<span class="nav-dot" id="pc-nav-dot" hidden></span></button>
+        <button class="tab" data-panel="tareas"><span class="ico">✅</span> Tareas</button>
       </nav>
       <button class="tab nav-settings" id="settings-btn"><span class="ico">⚙️</span> Ajustes</button>
     </aside>
@@ -1631,6 +1753,11 @@
         <div class="since-value" id="pc-since">—</div>
       </div>
 
+      <div class="card since-card">
+        <div class="since-label">Próxima ingesta</div>
+        <div class="since-value" id="pc-next">—</div>
+      </div>
+
       <div class="card">
         <div class="list-head">
           <h2>Historial de ingestas</h2>
@@ -1721,6 +1848,66 @@
           <button type="button" class="primary" id="peso-new">+ Nuevo peso</button>
         </div>
         <div id="peso-list"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-tareas">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">✅ Tareas</h2>
+        <button type="button" class="info-btn" id="te-open" title="Tareas automáticas" aria-label="Tareas automáticas">⚙️</button>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Antes de la próxima extracción</h2>
+        </div>
+        <div id="tarea-antes-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Durante el día</h2>
+          <button type="button" class="primary" id="tarea-new">+ Nueva tarea</button>
+        </div>
+        <div id="tarea-list"></div>
+      </div>
+
+      <div class="card" id="completadas-card" hidden>
+        <button type="button" class="completadas-head" id="completadas-toggle" aria-expanded="false">
+          <h2>Completadas <span class="completadas-count" id="completadas-count">0</span></h2>
+          <span class="completadas-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div id="completadas-body" hidden>
+          <div id="completadas-list"></div>
+        </div>
+      </div>
+
+      <!-- Modal: nueva tarea manual -->
+      <div class="modal-overlay" id="tarea-modal" hidden>
+        <div class="modal-box card">
+          <h2>Nueva tarea</h2>
+          <form id="tarea-form">
+            <div class="field">
+              <label for="tarea-texto">Tarea</label>
+              <input type="text" id="tarea-texto" placeholder="Ej. Lavar biberones" maxlength="200" autocomplete="off" required>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary">Guardar</button>
+              <button type="button" class="secondary" id="tarea-cancel">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal: tareas asociadas a cada una de las 5 extracciones del día -->
+      <div class="modal-overlay" id="te-modal" hidden>
+        <div class="modal-box card">
+          <div class="info-head">
+            <h2>Tareas automáticas</h2>
+            <button type="button" class="section-menu-close" id="te-close" aria-label="Cerrar">✕</button>
+          </div>
+          <div id="te-groups"></div>
+        </div>
       </div>
     </section>
 
@@ -1828,7 +2015,11 @@
     const KEY_PESO = "peso-mama";
     const KEY_HIERRO = "hierro-mama";
     const KEY_BANO = "bano-bebe";
-    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO];
+    const KEY_TAREAS = "tareas-mama";
+    const KEY_TAREAS_EXTRA = "tareas-extraccion";
+    const KEY_TAREAS_ANTES = "tareas-antes-extraccion";
+    const KEY_DIA_APLICADA = "tareas-dia-aplicada"; // último día en que se copió la plantilla "Durante el día"
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
     /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
@@ -1842,7 +2033,7 @@
     let db = null;
     let fbReady = false;     // true cuando Firebase está autenticado y escuchando
     let appStarted = false;  // evita arrancar la app dos veces
-    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [] };
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [] };
 
     function openDB() {
       return new Promise((resolve, reject) => {
@@ -1891,7 +2082,7 @@
       const nE = cache[KEY_EXTRA].length;
       if (db) {
         const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v91 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v92 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -2119,7 +2310,8 @@
         { panel: "sueno", ico: "😴", label: "Sueño" },
         { panel: "postparto", ico: "🌸", label: "Postparto" },
         { panel: "hierro", ico: "💊", label: "Hierro" },
-        { panel: "paracetamol", ico: "💊", label: "Paracetamol" }
+        { panel: "paracetamol", ico: "💊", label: "Paracetamol" },
+        { panel: "tareas", ico: "✅", label: "Tareas" }
       ] },
       more: { title: "Más", items: [
         { action: "settings", ico: "⚙️", label: "Ajustes" }
@@ -2129,7 +2321,7 @@
     const PANEL_SECTION = {
       home: "home",
       tomas: "bebe", panales: "bebe", bano: "bebe",
-      extracciones: "mama", sueno: "mama", paracetamol: "mama", postparto: "mama", hierro: "mama"
+      extracciones: "mama", sueno: "mama", paracetamol: "mama", postparto: "mama", hierro: "mama", tareas: "mama"
     };
 
     const sectionMenu = document.getElementById("section-menu");
@@ -3041,6 +3233,11 @@
       } else {
         extras.push(Object.assign({ id: newId() }, datos));
         save(KEY_EXTRA, extras);
+        // Nº de esta extracción dentro de su día → copia sus tareas a
+        // "Antes de la próxima extracción"
+        const nDia = extras.filter(x => x.fecha === datos.fecha).length;
+        agregarTareasAntes(nDia);
+        renderTareasAntes();
       }
       extraDay = datos.fecha; // mostrar el día de la extracción creada/editada
       closeExtraModal();
@@ -3803,8 +4000,37 @@
       if (navDot) navDot.hidden = !puede;
     }
 
+    // Próxima ingesta = última + 8 h
+    function updatePcNext() {
+      const el = document.getElementById("pc-next");
+      if (!el) return;
+      const items = load(KEY_PARACETAMOL);
+      if (items.length === 0) {
+        el.textContent = "—";
+        el.classList.add("muted");
+        return;
+      }
+      el.classList.remove("muted");
+      let latest = null;
+      for (const x of items) {
+        const dt = new Date(`${x.fecha}T${x.hora}`);
+        if (!latest || dt > latest) latest = dt;
+      }
+      const next = new Date(latest.getTime() + PC_INTERVALO_MS);
+      const hh = String(next.getHours()).padStart(2, "0");
+      const mm = String(next.getMinutes()).padStart(2, "0");
+      const nextDay = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+      const hoy = todayStr();
+      let suf = "";
+      if (nextDay !== hoy) {
+        suf = nextDay === addDays(hoy, 1) ? " · mañana" : ` · ${formatDayShort(nextDay)}`;
+      }
+      el.textContent = `${hh}:${mm}${suf}`;
+    }
+
     function renderPc() {
       updatePcSince();
+      updatePcNext();
       const items = load(KEY_PARACETAMOL);
       if (items.length === 0) {
         pcList.innerHTML = '<div class="empty">Aún no hay ingestas registradas.</div>';
@@ -4145,6 +4371,356 @@
       updateStatus();
     });
 
+    /* ===================== TAREAS ===================== */
+    const tareaForm = document.getElementById("tarea-form");
+    const tareaTexto = document.getElementById("tarea-texto");
+    const tareaList = document.getElementById("tarea-list");
+    const tareaNew = document.getElementById("tarea-new");
+    const tareaModal = document.getElementById("tarea-modal");
+    const tareaCancel = document.getElementById("tarea-cancel");
+
+    function openTareaModal() {
+      tareaTexto.value = "";
+      tareaModal.hidden = false;
+      tareaTexto.focus();
+    }
+    function closeTareaModal() {
+      tareaModal.hidden = true;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderTareas() {
+      // Las completadas desaparecen de la lista (se ven en "Completadas")
+      const items = load(KEY_TAREAS).filter(x => !x.hecha);
+      if (items.length === 0) {
+        tareaList.innerHTML = '<div class="empty">No hay tareas. Pulsa «+ Nueva tarea».</div>';
+        return;
+      }
+      const ordenadas = items.slice().sort((a, b) => (b.creada || 0) - (a.creada || 0));
+      let html = "";
+      for (const x of ordenadas) {
+        const fechaLbl = x.fecha
+          ? `<span class="tarea-src">${formatDayMes(x.fecha)}</span>`
+          : "";
+        html += `<div class="tarea">
+          <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
+          <div class="tarea-txt">${escapeHtml(x.texto)}${fechaLbl}</div>
+          <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
+        </div>`;
+      }
+      tareaList.innerHTML = html;
+    }
+
+    tareaForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const texto = tareaTexto.value.trim();
+      if (!texto) return;
+      const items = load(KEY_TAREAS);
+      items.push({ id: newId(), texto, hecha: false, creada: Date.now() });
+      save(KEY_TAREAS, items);
+      closeTareaModal();
+      renderTareas();
+    });
+
+    tareaNew.addEventListener("click", openTareaModal);
+    tareaCancel.addEventListener("click", closeTareaModal);
+    tareaModal.addEventListener("click", (e) => { if (e.target === tareaModal) closeTareaModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !tareaModal.hidden) closeTareaModal();
+    });
+
+    tareaList.addEventListener("click", (e) => {
+      const chk = e.target.closest('input[type="checkbox"]');
+      if (chk) {
+        const items = load(KEY_TAREAS);
+        const it = items.find(x => x.id === chk.dataset.id);
+        if (it) { it.hecha = true; it.completada = Date.now(); save(KEY_TAREAS, items); }
+        renderTareas();
+        renderCompletadas();
+        return;
+      }
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta tarea?")) return;
+      save(KEY_TAREAS, load(KEY_TAREAS).filter(x => x.id !== btn.dataset.id));
+      renderTareas();
+    });
+
+    // Al empezar un día nuevo, copia las tareas plantilla de "Durante el día"
+    // al principio de la lista de tareas del día. El marcador (día ya aplicado)
+    // se sincroniza en la nube para no duplicarlas entre dispositivos.
+    function aplicarPlantillaDia() {
+      const hoy = todayStr();
+      if (load(KEY_DIA_APLICADA)[0] === hoy) return; // ya aplicada hoy
+      save(KEY_DIA_APLICADA, [hoy]);                 // marca el día (evita repetir)
+      const plantilla = load(KEY_TAREAS_EXTRA).filter(x => x.extra === 0);
+      if (plantilla.length === 0) return;
+      const items = load(KEY_TAREAS);
+      const base = Date.now();
+      // 'creada' mayor = más arriba; conservamos el orden de la plantilla
+      plantilla.forEach((x, i) => {
+        items.push({ id: newId(), texto: x.texto, hecha: false, creada: base + (plantilla.length - i), fecha: hoy });
+      });
+      save(KEY_TAREAS, items);
+      renderTareas();
+    }
+
+    /* --- Tareas por extracción (modal) --- */
+    // Horas de referencia de las 5 extracciones del día
+    const TE_HORAS = ["3:00", "7:50", "12:40", "17:30", "22:10"];
+    const teOpen = document.getElementById("te-open");
+    const teModal = document.getElementById("te-modal");
+    const teClose = document.getElementById("te-close");
+    const teGroups = document.getElementById("te-groups");
+
+    // HTML de un grupo del modal (extra = 0 para "Durante el día"; 1–5 para extracciones).
+    // Se muestran en el orden del array (reordenable con arrastre).
+    function teGroupHTML(extraId, titulo, sub, items) {
+      const suyas = items.filter(x => x.extra === extraId);
+      let lista = suyas.map(x => `<div class="tarea" data-id="${x.id}">
+          <span class="tarea-drag" aria-hidden="true" title="Arrastra para reordenar">⠿</span>
+          <div class="tarea-txt">${escapeHtml(x.texto)}</div>
+          <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
+        </div>`).join("");
+      if (!suyas.length) lista = '<div class="te-empty">Sin tareas.</div>';
+      return `<div class="te-group">
+        <div class="te-group-head">
+          <span class="te-num">${titulo}</span>
+          ${sub ? `<span class="te-hora">${sub}</span>` : ""}
+        </div>
+        <form class="te-add" data-extra="${extraId}">
+          <input type="text" placeholder="Nueva tarea…" maxlength="200" autocomplete="off" required>
+          <button type="submit" title="Añadir" aria-label="Añadir">+</button>
+        </form>
+        <div class="te-list" data-extra="${extraId}">${lista}</div>
+      </div>`;
+    }
+
+    function renderTareasExtra() {
+      const items = load(KEY_TAREAS_EXTRA);
+      let html = teGroupHTML(0, "Durante el día", "", items);
+      for (let n = 1; n <= 5; n++) {
+        html += teGroupHTML(n, "Extracción " + n, TE_HORAS[n - 1], items);
+      }
+      teGroups.innerHTML = html;
+    }
+
+    teOpen.addEventListener("click", () => { renderTareasExtra(); teModal.hidden = false; });
+    teClose.addEventListener("click", () => { teModal.hidden = true; });
+    teModal.addEventListener("click", (e) => { if (e.target === teModal) teModal.hidden = true; });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !teModal.hidden) teModal.hidden = true;
+    });
+
+    teGroups.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const form = e.target.closest(".te-add");
+      if (!form) return;
+      const input = form.querySelector('input[type="text"]');
+      const texto = input.value.trim();
+      if (!texto) return;
+      const extra = Number(form.dataset.extra);
+      const items = load(KEY_TAREAS_EXTRA);
+      items.push({ id: newId(), extra, texto, hecha: false, creada: Date.now() });
+      save(KEY_TAREAS_EXTRA, items);
+      renderTareasExtra();
+      const nuevo = teGroups.querySelector(`.te-add[data-extra="${extra}"] input`);
+      if (nuevo) nuevo.focus();
+    });
+
+    teGroups.addEventListener("click", (e) => {
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta tarea?")) return;
+      save(KEY_TAREAS_EXTRA, load(KEY_TAREAS_EXTRA).filter(x => x.id !== btn.dataset.id));
+      renderTareasExtra();
+    });
+
+    /* Reordenar tareas del modal con arrastre (ratón y táctil).
+       El orden del array KEY_TAREAS_EXTRA es el orden canónico: al soltar se
+       reordenan dentro del grupo y las tareas que se generan lo respetan. */
+    let teDrag = null;
+    teGroups.addEventListener("pointerdown", (e) => {
+      const grip = e.target.closest(".tarea-drag");
+      if (!grip) return;
+      const item = grip.closest(".tarea");
+      const list = grip.closest(".te-list");
+      if (!item || !list) return;
+      e.preventDefault();
+      teDrag = { item, list };
+      item.classList.add("dragging");
+      document.addEventListener("pointermove", teDragMove);
+      document.addEventListener("pointerup", teDragEnd, { once: true });
+      document.addEventListener("pointercancel", teDragEnd, { once: true });
+    });
+
+    function teDragMove(e) {
+      if (!teDrag) return;
+      const { item, list } = teDrag;
+      const y = e.clientY;
+      const otros = [...list.querySelectorAll(".tarea:not(.dragging)")];
+      let ref = null;
+      for (const s of otros) {
+        const r = s.getBoundingClientRect();
+        if (y < r.top + r.height / 2) { ref = s; break; }
+      }
+      if (ref) list.insertBefore(item, ref);
+      else list.appendChild(item);
+    }
+
+    function teDragEnd() {
+      document.removeEventListener("pointermove", teDragMove);
+      if (!teDrag) return;
+      const { item, list } = teDrag;
+      item.classList.remove("dragging");
+      const extraId = Number(list.dataset.extra);
+      const ids = [...list.querySelectorAll(".tarea")].map(el => el.dataset.id);
+      teDrag = null;
+      const all = load(KEY_TAREAS_EXTRA);
+      const original = all.filter(x => x.extra === extraId).map(x => x.id);
+      if (ids.join("|") === original.join("|")) return; // no cambió el orden
+      // Recoloca los elementos del grupo (en su nuevo orden) en las posiciones
+      // que ocupaban dentro del array global; el resto queda igual.
+      const cola = ids.slice();
+      const nuevo = all.map(x => {
+        if (x.extra !== extraId) return x;
+        return all.find(y => y.id === cola.shift()) || x;
+      });
+      save(KEY_TAREAS_EXTRA, nuevo);
+    }
+
+    /* --- Sección "Antes de la próxima extracción" --- */
+    const tareaAntesList = document.getElementById("tarea-antes-list");
+
+    function renderTareasAntes() {
+      // Las completadas desaparecen de la lista (se ven en "Completadas")
+      const items = load(KEY_TAREAS_ANTES).filter(x => !x.hecha);
+      if (items.length === 0) {
+        tareaAntesList.innerHTML = '<div class="empty">No hay tareas. Se añadirán al registrar una extracción.</div>';
+        return;
+      }
+      const ordenadas = items.slice().sort((a, b) => (b.creada || 0) - (a.creada || 0));
+      let html = "";
+      for (const x of ordenadas) {
+        const hora = TE_HORAS[(x.extra || 0) - 1];
+        const src = x.extra
+          ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>`
+          : "";
+        html += `<div class="tarea">
+          <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
+          <div class="tarea-txt">${escapeHtml(x.texto)}${src}</div>
+          <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
+        </div>`;
+      }
+      tareaAntesList.innerHTML = html;
+    }
+
+    // Copia las tareas plantilla de la extracción nº n (1–5) a esta sección.
+    // Las tareas se acumulan: no se borran las de extracciones anteriores.
+    function agregarTareasAntes(n) {
+      if (!(n >= 1 && n <= 5)) return;
+      const plantilla = load(KEY_TAREAS_EXTRA).filter(x => x.extra === n);
+      if (plantilla.length === 0) return;
+      const items = load(KEY_TAREAS_ANTES);
+      const base = Date.now();
+      plantilla.forEach((x, i) => {
+        items.push({ id: newId(), texto: x.texto, extra: n, hecha: false, creada: base + i });
+      });
+      save(KEY_TAREAS_ANTES, items);
+    }
+
+    tareaAntesList.addEventListener("click", (e) => {
+      const chk = e.target.closest('input[type="checkbox"]');
+      if (chk) {
+        const items = load(KEY_TAREAS_ANTES);
+        const it = items.find(x => x.id === chk.dataset.id);
+        if (it) { it.hecha = true; it.completada = Date.now(); save(KEY_TAREAS_ANTES, items); }
+        renderTareasAntes();
+        renderCompletadas();
+        return;
+      }
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta tarea?")) return;
+      save(KEY_TAREAS_ANTES, load(KEY_TAREAS_ANTES).filter(x => x.id !== btn.dataset.id));
+      renderTareasAntes();
+    });
+
+    /* --- Tareas completadas (acumuladas de ambas listas) --- */
+    const completadasCard = document.getElementById("completadas-card");
+    const completadasToggle = document.getElementById("completadas-toggle");
+    const completadasBody = document.getElementById("completadas-body");
+    const completadasCount = document.getElementById("completadas-count");
+    const completadasList = document.getElementById("completadas-list");
+
+    // Todas las tareas completadas de "Durante el día" y "Antes de la próxima
+    // extracción", marcadas con su clave de origen y ordenadas por más reciente.
+    function tareasCompletadas() {
+      const dia = load(KEY_TAREAS).filter(x => x.hecha).map(x => Object.assign({ _key: KEY_TAREAS }, x));
+      const antes = load(KEY_TAREAS_ANTES).filter(x => x.hecha).map(x => Object.assign({ _key: KEY_TAREAS_ANTES }, x));
+      return dia.concat(antes).sort((a, b) => (b.completada || b.creada || 0) - (a.completada || a.creada || 0));
+    }
+
+    function renderCompletadas() {
+      const items = tareasCompletadas();
+      completadasCount.textContent = items.length;
+      completadasCard.hidden = items.length === 0;
+      if (items.length === 0) {
+        completadasBody.hidden = true;
+        completadasToggle.setAttribute("aria-expanded", "false");
+        return;
+      }
+      let html = "";
+      for (const x of items) {
+        let src = "";
+        if (x._key === KEY_TAREAS_ANTES) {
+          const hora = TE_HORAS[(x.extra || 0) - 1];
+          src = x.extra ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>` : "";
+        } else if (x.fecha) {
+          src = `<span class="tarea-src">${formatDayMes(x.fecha)}</span>`;
+        }
+        html += `<div class="tarea done">
+          <input type="checkbox" checked data-key="${x._key}" data-id="${x.id}" aria-label="Desmarcar tarea">
+          <div class="tarea-txt">${escapeHtml(x.texto)}${src}</div>
+          <button class="del" data-key="${x._key}" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
+        </div>`;
+      }
+      completadasList.innerHTML = html;
+    }
+
+    completadasToggle.addEventListener("click", () => {
+      const abierto = completadasToggle.getAttribute("aria-expanded") === "true";
+      completadasToggle.setAttribute("aria-expanded", String(!abierto));
+      completadasBody.hidden = abierto;
+    });
+
+    completadasList.addEventListener("click", (e) => {
+      const chk = e.target.closest('input[type="checkbox"]');
+      if (chk) {
+        const key = chk.dataset.key;
+        const items = load(key);
+        const it = items.find(x => x.id === chk.dataset.id);
+        if (it) { it.hecha = false; it.completada = null; save(key, items); }
+        renderCompletadas();
+        if (key === KEY_TAREAS) renderTareas(); else renderTareasAntes();
+        return;
+      }
+      const btn = e.target.closest(".del");
+      if (!btn) return;
+      if (!confirm("¿Eliminar esta tarea?")) return;
+      const key = btn.dataset.key;
+      save(key, load(key).filter(x => x.id !== btn.dataset.id));
+      renderCompletadas();
+    });
+
     /* ===================== AJUSTES (exportar / importar) ===================== */
     const settingsBtn = document.getElementById("settings-btn");
     const settingsModal = document.getElementById("settings-modal");
@@ -4171,6 +4747,9 @@
       renderPanal();
       renderBano();
       renderPeso();
+      renderTareas();
+      renderTareasAntes();
+      renderCompletadas();
       updateStatus();
     }
 
@@ -4327,6 +4906,9 @@
       renderBano();
       setPesoDefaults();
       renderPeso();
+      renderTareas();
+      renderTareasAntes();
+      renderCompletadas();
       updateEdad();
       updateCuarentena();
       updateMobileNav();
@@ -4344,10 +4926,12 @@
         updateExtraSince();
         updateNextExtraction();
         updatePcSince();
+        updatePcNext();
         updateHiSince();
         updateBanoSince();
         updateEdad();
         updateCuarentena();
+        aplicarPlantillaDia(); // por si cambia el día con la app abierta
       }, 60000);
     }
 
@@ -4358,6 +4942,7 @@
        dispositivo ya tiene datos, los subimos para no perderlos. */
     function startFirebaseSync() {
       fbReady = true;
+      const sincronizadas = new Set(); // claves que ya recibieron su primer valor de la nube
       ALL_KEYS.forEach((key) => {
         let first = true;
         const ref = fdb.ref(FB_ROOT + "/" + key);
@@ -4372,6 +4957,10 @@
           first = false;
           cache[key] = remote;
           if (db) idbSet(key, remote).catch(() => {}); // mantiene el respaldo local al día
+          // Cuando toda la nube ha sincronizado por primera vez, aplica (una vez
+          // por día) la plantilla de "Durante el día" con datos ya fiables.
+          sincronizadas.add(key);
+          if (sincronizadas.size === ALL_KEYS.length) aplicarPlantillaDia();
           renderAll();
         }, (err) => showError("al leer la nube: " + (err && err.message)));
       });
