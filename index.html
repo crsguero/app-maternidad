@@ -535,6 +535,15 @@
 
     .form-actions { display: flex; gap: 10px; }
     .form-actions .primary { flex: 1; }
+    /* Ajustes de tomas: Guardar y Cancelar del mismo ancho y alineados con los
+       campos mín/máx de arriba (dos columnas iguales, mismo gap que .row) */
+    #t-cfg-form .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    #t-cfg-form .form-actions .primary,
+    #t-cfg-form .form-actions .secondary { width: 100%; min-width: 0; }
 
     button.secondary {
       padding: 14px 18px;
@@ -1361,11 +1370,11 @@
             </div>
             <div class="row">
               <div class="field">
-                <label for="t-cfg-min">Cantidad mínima (ml)</label>
+                <label for="t-cfg-min">Cantidad mínima (ml/kg/día)</label>
                 <input type="number" id="t-cfg-min" min="0" step="1" inputmode="numeric" placeholder="Ej. 150">
               </div>
               <div class="field">
-                <label for="t-cfg-max">Cantidad máxima (ml)</label>
+                <label for="t-cfg-max">Cantidad máxima (ml/kg/día)</label>
                 <input type="number" id="t-cfg-max" min="0" step="1" inputmode="numeric" placeholder="Ej. 200">
               </div>
             </div>
