@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#7c6ce0">
-  <title>Registro de tomas</title>
+  <title>Maternidad</title>
   <style>
     :root {
       --bg: #f5f3fb;
@@ -1345,29 +1345,35 @@
     <section class="panel" id="panel-tomas">
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">🍼 Tomas</h2>
-        <button type="button" class="info-btn" id="t-info-btn" title="Cantidades orientativas" aria-label="Cantidades orientativas por edad">ℹ️</button>
+        <button type="button" class="info-btn" id="t-cfg-btn" title="Ajustes de tomas" aria-label="Ajustes de tomas">⚙️</button>
       </div>
 
-      <div class="modal-overlay" id="t-info-modal" hidden>
+      <div class="modal-overlay" id="t-cfg-modal" hidden>
         <div class="modal-box card">
           <div class="info-head">
-            <h2>Cantidades orientativas por edad</h2>
-            <button type="button" class="section-menu-close" id="t-info-close" aria-label="Cerrar">✕</button>
+            <h2>Ajustes de tomas</h2>
+            <button type="button" class="section-menu-close" id="t-cfg-close" aria-label="Cerrar">✕</button>
           </div>
-          <table class="info-table">
-            <thead>
-              <tr><th>Edad</th><th>Por toma</th><th>Total/día</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>2ª semana</td><td>80-90 ml/toma (7-8 tomas/día)</td><td>560-720</td></tr>
-              <tr><td>3ª semana</td><td>90-100 ml/toma (7-8 tomas/día)</td><td>630-800</td></tr>
-              <tr><td>4ª semana</td><td>100-120 ml/toma (7-8 tomas/día)</td><td>700-960</td></tr>
-              <tr><td>2º mes</td><td>120-150 ml/toma (7 tomas/día)</td><td>840-1050</td></tr>
-              <tr><td>3º mes</td><td>150-180 ml/toma (6 tomas/día)</td><td>900-1080</td></tr>
-              <tr><td>4º mes</td><td>180-210 ml/toma (5 tomas/día)</td><td>900-1050</td></tr>
-              <tr><td>5º mes</td><td>210-250 ml/toma (4-5 tomas/día)</td><td>840-1250</td></tr>
-            </tbody>
-          </table>
+          <form id="t-cfg-form">
+            <div class="field">
+              <label for="t-cfg-peso">Peso (kg)</label>
+              <input type="number" id="t-cfg-peso" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 4.20">
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="t-cfg-min">Cantidad mínima (ml)</label>
+                <input type="number" id="t-cfg-min" min="0" step="1" inputmode="numeric" placeholder="Ej. 150">
+              </div>
+              <div class="field">
+                <label for="t-cfg-max">Cantidad máxima (ml)</label>
+                <input type="number" id="t-cfg-max" min="0" step="1" inputmode="numeric" placeholder="Ej. 200">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary">Guardar</button>
+              <button type="button" class="secondary" id="t-cfg-cancel">Cancelar</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -2019,7 +2025,8 @@
     const KEY_TAREAS_EXTRA = "tareas-extraccion";
     const KEY_TAREAS_ANTES = "tareas-antes-extraccion";
     const KEY_DIA_APLICADA = "tareas-dia-aplicada"; // último día en que se copió la plantilla "Durante el día"
-    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA];
+    const KEY_TOMA_CFG = "tomas-config"; // ajustes de tomas: peso y cantidades min/max
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
     /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
@@ -2033,7 +2040,7 @@
     let db = null;
     let fbReady = false;     // true cuando Firebase está autenticado y escuchando
     let appStarted = false;  // evita arrancar la app dos veces
-    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [] };
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [] };
 
     function openDB() {
       return new Promise((resolve, reject) => {
@@ -2555,8 +2562,9 @@
     }
 
     // Tarjeta de resumen de un día de tomas
-    // Rango orientativo de ml/día según la edad de la niña (nació FECHA_NACIMIENTO)
-    function rangoTotalDia(fecha) {
+    // Rango orientativo de ml/día según la edad de la niña (nació FECHA_NACIMIENTO).
+    // Se usa solo para días previos a cualquier ajuste manual del modal.
+    function rangoEdad(fecha) {
       const dias = diasPostparto(fecha);
       if (dias >= 7 && dias <= 13) return { min: 560, max: 720 };   // 2ª semana
       if (dias >= 14 && dias <= 20) return { min: 630, max: 800 };  // 3ª semana
@@ -2566,6 +2574,29 @@
       if (dias >= 90 && dias <= 119) return { min: 900, max: 1050 };// 4º mes
       if (dias >= 120 && dias <= 149) return { min: 840, max: 1250 };// 5º mes
       return null; // 1ª semana o más de 5 meses: sin referencia
+    }
+
+    // Ajuste de tomas vigente en una fecha: el guardado más reciente con desde <= fecha
+    function configTomaVigente(fecha) {
+      const cfgs = load(KEY_TOMA_CFG).filter(c => c.desde && c.desde <= fecha);
+      if (!cfgs.length) return null;
+      cfgs.sort((a, b) => a.desde.localeCompare(b.desde));
+      return cfgs[cfgs.length - 1];
+    }
+
+    // Rango de ml/día para una fecha. Desde el primer ajuste manual (según su
+    // fecha de vigencia) se calcula peso*mín – peso*máx (redondeado sin decimales);
+    // antes de eso, se mantiene el rango orientativo por edad.
+    function rangoTotalDia(fecha) {
+      const cfg = configTomaVigente(fecha);
+      if (cfg) {
+        const peso = Number(cfg.peso), min = Number(cfg.min), max = Number(cfg.max);
+        if (peso > 0 && min > 0 && max > 0) {
+          return { min: Math.round(peso * min), max: Math.round(peso * max) };
+        }
+        return null; // ajuste incompleto: sin rango
+      }
+      return rangoEdad(fecha);
     }
 
     function tomasDiaCardHTML(fecha, items, avgGap, clickable) {
@@ -2587,7 +2618,7 @@
         if (totalMl < rango.min) { cls = "bajo"; label = "Por debajo"; }
         else if (totalMl > rango.max) { cls = "alto"; label = "Por encima"; }
         else { cls = "ok"; label = "En rango"; }
-        badge = `<div class="rango-row"><span class="rango-badge ${cls}" title="Rango recomendado para esta edad: ${rango.min}-${rango.max} ml/día">${label} · ${rango.min}-${rango.max} ml</span></div>`;
+        badge = `<div class="rango-row"><span class="rango-badge ${cls}" title="Rango recomendado: ${rango.min}-${rango.max} ml/día">${label} · ${rango.min}-${rango.max} ml</span></div>`;
       }
 
       return `<div class="resumen-dia"${attrs}>
@@ -2798,14 +2829,46 @@
     });
 
     // Modal de información (cantidades orientativas por edad)
-    const tInfoBtn = document.getElementById("t-info-btn");
-    const tInfoModal = document.getElementById("t-info-modal");
-    const tInfoClose = document.getElementById("t-info-close");
-    tInfoBtn.addEventListener("click", () => { tInfoModal.hidden = false; });
-    tInfoClose.addEventListener("click", () => { tInfoModal.hidden = true; });
-    tInfoModal.addEventListener("click", (e) => { if (e.target === tInfoModal) tInfoModal.hidden = true; });
+    const tCfgBtn = document.getElementById("t-cfg-btn");
+    const tCfgModal = document.getElementById("t-cfg-modal");
+    const tCfgClose = document.getElementById("t-cfg-close");
+    const tCfgCancel = document.getElementById("t-cfg-cancel");
+    const tCfgForm = document.getElementById("t-cfg-form");
+    const tCfgPeso = document.getElementById("t-cfg-peso");
+    const tCfgMin = document.getElementById("t-cfg-min");
+    const tCfgMax = document.getElementById("t-cfg-max");
+
+    function openTomaCfg() {
+      const cfg = configTomaVigente(todayStr()) || {};
+      tCfgPeso.value = cfg.peso ?? "";
+      tCfgMin.value = cfg.min ?? "";
+      tCfgMax.value = cfg.max ?? "";
+      tCfgModal.hidden = false;
+    }
+    function closeTomaCfg() { tCfgModal.hidden = true; }
+
+    tCfgBtn.addEventListener("click", openTomaCfg);
+    tCfgClose.addEventListener("click", closeTomaCfg);
+    tCfgCancel.addEventListener("click", closeTomaCfg);
+    tCfgModal.addEventListener("click", (e) => { if (e.target === tCfgModal) closeTomaCfg(); });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !tInfoModal.hidden) tInfoModal.hidden = true;
+      if (e.key === "Escape" && !tCfgModal.hidden) closeTomaCfg();
+    });
+    tCfgForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const hoy = todayStr();
+      const entrada = {
+        desde: hoy, // vigente desde hoy en adelante
+        peso: tCfgPeso.value.trim(),
+        min: tCfgMin.value.trim(),
+        max: tCfgMax.value.trim()
+      };
+      // Reemplaza la entrada de hoy si ya existía; conserva el historial anterior
+      const cfgs = load(KEY_TOMA_CFG).filter(c => c.desde !== hoy);
+      cfgs.push(entrada);
+      save(KEY_TOMA_CFG, cfgs);
+      closeTomaCfg();
+      renderTomas(); // recalcula los rangos del resumen (hoy en adelante)
     });
 
     // Modal de información de Extracciones (horario)
@@ -3589,6 +3652,7 @@
       } else {
         items.push(Object.assign({ id: newId() }, datos));
         save(KEY_BANO, items);
+        crearTareasBano(datos.fecha); // "Recoger baño" ahora y "Baño" mañana
       }
       banoWeek = weekStart(datos.fecha); // mostrar la semana del baño creado/editado
       closeBanoModal();
@@ -4397,9 +4461,17 @@
         .replace(/'/g, "&#39;");
     }
 
+    // Texto dinámico "Hace X días" desde la fecha de un baño hasta hoy
+    function diasDesdeBano(fechaBano) {
+      const d = diffDias(fechaBano, todayStr());
+      if (d <= 0) return "Hoy";
+      return d === 1 ? "Hace 1 día" : `Hace ${d} días`;
+    }
+
     function renderTareas() {
-      // Las completadas desaparecen de la lista (se ven en "Completadas")
-      const items = load(KEY_TAREAS).filter(x => !x.hecha);
+      const hoy = todayStr();
+      // Se ocultan las completadas (van a "Completadas") y las diferidas a un día futuro
+      const items = load(KEY_TAREAS).filter(x => !x.hecha && (!x.desde || x.desde <= hoy));
       if (items.length === 0) {
         tareaList.innerHTML = '<div class="empty">No hay tareas. Pulsa «+ Nueva tarea».</div>';
         return;
@@ -4407,16 +4479,30 @@
       const ordenadas = items.slice().sort((a, b) => (b.creada || 0) - (a.creada || 0));
       let html = "";
       for (const x of ordenadas) {
-        const fechaLbl = x.fecha
-          ? `<span class="tarea-src">${formatDayMes(x.fecha)}</span>`
-          : "";
+        let sub = "";
+        if (x.banoFecha) sub = `<span class="tarea-src">${diasDesdeBano(x.banoFecha)}</span>`;
+        else if (x.fecha) sub = `<span class="tarea-src">${formatDayMes(x.fecha)}</span>`;
         html += `<div class="tarea">
           <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
-          <div class="tarea-txt">${escapeHtml(x.texto)}${fechaLbl}</div>
+          <div class="tarea-txt">${escapeHtml(x.texto)}${sub}</div>
           <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
         </div>`;
       }
       tareaList.innerHTML = html;
+    }
+
+    // Al registrar un baño nuevo: "Recoger baño" ya, y "Baño" el día siguiente.
+    function crearTareasBano(fecha) {
+      const items = load(KEY_TAREAS);
+      items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now() });
+      const desde = addDays(fecha, 1); // aparece al comienzo del día siguiente (0:00)
+      items.push({
+        id: newId(), texto: "Baño", hecha: false,
+        creada: new Date(desde + "T00:00").getTime(),
+        desde, banoFecha: fecha
+      });
+      save(KEY_TAREAS, items);
+      renderTareas();
     }
 
     tareaForm.addEventListener("submit", (e) => {
@@ -4684,6 +4770,8 @@
         if (x._key === KEY_TAREAS_ANTES) {
           const hora = TE_HORAS[(x.extra || 0) - 1];
           src = x.extra ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>` : "";
+        } else if (x.banoFecha) {
+          src = `<span class="tarea-src">${formatDayMes(x.banoFecha)}</span>`;
         } else if (x.fecha) {
           src = `<span class="tarea-src">${formatDayMes(x.fecha)}</span>`;
         }
@@ -4921,6 +5009,7 @@
       }
 
       // Refresca cada minuto el "tiempo desde la última" toma/extracción/ingesta
+      let ultimoDiaTareas = todayStr();
       setInterval(() => {
         updateTomaSince();
         updateExtraSince();
@@ -4932,6 +5021,13 @@
         updateEdad();
         updateCuarentena();
         aplicarPlantillaDia(); // por si cambia el día con la app abierta
+        // Al cambiar de día: revela tareas diferidas (p. ej. "Baño") y
+        // actualiza las líneas dinámicas de "Hace X días".
+        const hoyAhora = todayStr();
+        if (hoyAhora !== ultimoDiaTareas) {
+          ultimoDiaTareas = hoyAhora;
+          renderTareas();
+        }
       }, 60000);
     }
 
