@@ -858,7 +858,7 @@
     .since-value { font-size: 1.6rem; font-weight: 700; color: var(--extra); }
     .since-value.muted { font-size: 1rem; font-weight: 600; color: var(--muted); }
     .e-since:not(.muted) { color: var(--primary-dark); }
-    #e-next:not(.muted) { color: var(--primary-dark); }
+    .e-next:not(.muted) { color: var(--primary-dark); }
     #pc-next:not(.muted) { color: var(--primary-dark); }
     .t-since:not(.muted) { color: var(--primary-dark); }
     #edad-value { color: var(--primary-dark); }
@@ -1200,6 +1200,11 @@
     #completadas-body { margin-top: 14px; }
     #completadas-list { max-height: 340px; overflow-y: auto; }
 
+    /* Pestañas de navegación ocultas desde Ajustes */
+    .nav-oculta { display: none !important; }
+    #nav-vis-list .check-label { margin-bottom: 10px; }
+    #nav-vis-list .check-label .ico { font-size: 1.1rem; }
+
     .status {
       text-align: center;
       font-size: 0.8rem;
@@ -1306,11 +1311,11 @@
       </div>
       <nav class="nav">
         <button class="tab active" data-panel="home"><span class="ico">📊</span> Resumen</button>
-        <div class="nav-group-label">Bebé</div>
+        <div class="nav-group-label" data-nav-group="bebe">Bebé</div>
         <button class="tab" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
         <button class="tab" data-panel="panales"><span class="ico">🧷</span> Pañales</button>
         <button class="tab" data-panel="bano"><span class="ico">🛁</span> Baño</button>
-        <div class="nav-group-label">Mamá</div>
+        <div class="nav-group-label" data-nav-group="mama">Mamá</div>
         <button class="tab" data-panel="extracciones"><span class="ico">💧</span> Extracciones</button>
         <button class="tab" data-panel="sueno"><span class="ico">😴</span> Sueño</button>
         <button class="tab" data-panel="postparto"><span class="ico">🌸</span> Postparto</button>
@@ -1344,8 +1349,8 @@
 
       <h3 class="home-section-title">💧 Extracciones</h3>
       <div class="card since-card">
-        <div class="since-label">Última extracción</div>
-        <div class="since-value e-since">—</div>
+        <div class="since-label">Próxima extracción</div>
+        <div class="since-value e-next">—</div>
       </div>
       <div id="home-extra-resumen"></div>
     </section>
@@ -1535,7 +1540,7 @@
 
       <div class="card since-card">
         <div class="since-label">Próxima extracción</div>
-        <div class="since-value" id="e-next">—</div>
+        <div class="since-value e-next">—</div>
       </div>
 
       <div class="subtabs">
@@ -1936,6 +1941,7 @@
             <div class="settings-layout">
               <nav class="settings-nav">
                 <button type="button" class="settings-tab active" data-settings-panel="datos"><span class="ico">💾</span> Datos</button>
+                <button type="button" class="settings-tab" data-settings-panel="pestanas"><span class="ico">🧭</span> Pestañas</button>
                 <button type="button" class="settings-tab" data-settings-panel="sesion"><span class="ico">👤</span> Sesión</button>
               </nav>
               <div class="settings-content">
@@ -1947,6 +1953,12 @@
                     <button type="button" class="primary" id="export-btn">⬇️ Exportar datos</button>
                     <button type="button" class="primary" id="import-btn">⬆️ Importar datos</button>
                   </div>
+                </div>
+                <!-- Pestañas visibles -->
+                <div class="settings-panel" data-settings-panel="pestanas" hidden>
+                  <h3>Pestañas visibles</h3>
+                  <p class="hint">Muestra u oculta cada pestaña de la navegación principal.</p>
+                  <div id="nav-vis-list"></div>
                 </div>
                 <!-- Sesión -->
                 <div class="settings-panel" data-settings-panel="sesion" hidden>
@@ -2035,7 +2047,8 @@
     const KEY_TAREAS_ANTES = "tareas-antes-extraccion";
     const KEY_DIA_APLICADA = "tareas-dia-aplicada"; // último día en que se copió la plantilla "Durante el día"
     const KEY_TOMA_CFG = "tomas-config"; // ajustes de tomas: peso y cantidades min/max
-    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG];
+    const KEY_NAV_VIS = "nav-ocultas"; // pestañas de navegación ocultas (array de nombres de panel)
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
     /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
@@ -2049,7 +2062,7 @@
     let db = null;
     let fbReady = false;     // true cuando Firebase está autenticado y escuchando
     let appStarted = false;  // evita arrancar la app dos veces
-    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [] };
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [] };
 
     function openDB() {
       return new Promise((resolve, reject) => {
@@ -2258,6 +2271,8 @@
 
     /* ---------- Pestañas ---------- */
     function activateTab(panel) {
+      // Si la pestaña está oculta, cae en Resumen
+      if (panel !== "home" && esPanelOculto(panel)) panel = "home";
       const tab = document.querySelector('.tab[data-panel="' + panel + '"]');
       const target = document.getElementById("panel-" + panel);
       if (!tab || !target) return;
@@ -2344,6 +2359,53 @@
     const sectionMenuTitle = document.getElementById("section-menu-title");
     const sectionMenuList = document.getElementById("section-menu-list");
 
+    /* ---------- Mostrar/ocultar pestañas de navegación (Ajustes) ---------- */
+    function panelsOcultos() { return load(KEY_NAV_VIS); } // array de nombres de panel
+    function esPanelOculto(panel) { return panelsOcultos().includes(panel); }
+    // Pestañas configurables: todas las de las secciones (excluye Resumen y acciones)
+    function panelesConfigurables() {
+      const out = [];
+      for (const sec of Object.keys(SECTIONS)) {
+        for (const it of SECTIONS[sec].items) if (it.panel) out.push(it);
+      }
+      return out;
+    }
+
+    function aplicarVisibilidadNav() {
+      const ocultos = panelsOcultos();
+      // Sidebar (escritorio): oculta los botones de pestaña marcados
+      document.querySelectorAll('.nav .tab[data-panel]').forEach(t => {
+        if (t.dataset.panel === "home") return;
+        t.classList.toggle("nav-oculta", ocultos.includes(t.dataset.panel));
+      });
+      // Etiquetas de grupo del sidebar: se ocultan si todo su grupo está oculto
+      document.querySelectorAll('.nav-group-label[data-nav-group]').forEach(lbl => {
+        const items = (SECTIONS[lbl.dataset.navGroup] || {}).items || [];
+        const panels = items.filter(i => i.panel).map(i => i.panel);
+        lbl.classList.toggle("nav-oculta", panels.length > 0 && panels.every(p => ocultos.includes(p)));
+      });
+      // Barra inferior (móvil): oculta una sección si no le queda ninguna pestaña
+      document.querySelectorAll('.mtab[data-sec]').forEach(b => {
+        const sec = b.dataset.sec;
+        if (sec === "home" || sec === "more") return;
+        const items = (SECTIONS[sec] || {}).items || [];
+        const panels = items.filter(i => i.panel).map(i => i.panel);
+        b.classList.toggle("nav-oculta", panels.length > 0 && panels.every(p => ocultos.includes(p)));
+      });
+    }
+
+    function renderNavVis() {
+      const cont = document.getElementById("nav-vis-list");
+      if (!cont) return;
+      const ocultos = panelsOcultos();
+      cont.innerHTML = panelesConfigurables().map(it =>
+        `<label class="check-label">
+          <input type="checkbox" data-panel="${it.panel}" ${ocultos.includes(it.panel) ? "" : "checked"}>
+          <span class="ico">${it.ico}</span> ${it.label}
+        </label>`
+      ).join("");
+    }
+
     function updateMobileNav() {
       const activePanel = document.querySelector(".panel.active");
       const name = activePanel ? activePanel.id.replace("panel-", "") : "home";
@@ -2357,10 +2419,12 @@
       const data = SECTIONS[sec];
       if (!data) return;
       sectionMenuTitle.textContent = data.title;
-      sectionMenuList.innerHTML = data.items.map(it =>
-        `<button class="menu-item" data-panel="${it.panel || ""}" data-action="${it.action || ""}">` +
-        `<span class="menu-item-ico">${it.ico}</span> ${it.label}</button>`
-      ).join("");
+      sectionMenuList.innerHTML = data.items
+        .filter(it => !it.panel || !esPanelOculto(it.panel)) // omite las pestañas ocultas
+        .map(it =>
+          `<button class="menu-item" data-panel="${it.panel || ""}" data-action="${it.action || ""}">` +
+          `<span class="menu-item-ico">${it.ico}</span> ${it.label}</button>`
+        ).join("");
       sectionMenu.hidden = false;
       sectionMenu.dataset.sec = sec;
       // Resalta en la barra el botón cuyo menú está abierto
@@ -3086,8 +3150,8 @@
     // 5 extracciones/día; la última siempre a las 22:10; las que quedan se
     // reparten equidistantes entre la última registrada hoy y las 22:10.
     function updateNextExtraction() {
-      const el = document.getElementById("e-next");
-      if (!el) return;
+      const els = document.querySelectorAll(".e-next");
+      if (!els.length) return;
       const FIN = 22 * 60 + 10;   // 22:10 en minutos
       const PRIMERA = 3 * 60;     // 3:00, la primera del día
       const TOTAL = 5;
@@ -3097,23 +3161,28 @@
       const hoyExtras = load(KEY_EXTRA).filter(x => x.fecha === hoy);
       const n = hoyExtras.length;
 
-      el.classList.remove("muted");
-      if (n === 0) { el.textContent = fmt(PRIMERA); return; }        // aún ninguna hoy → 3:00
-      if (n >= TOTAL) {                                              // ya hechas las 5
-        el.textContent = "Completadas las 5 de hoy";
-        el.classList.add("muted");
-        return;
+      let text, muted = false;
+      if (n === 0) {
+        text = fmt(PRIMERA);                          // aún ninguna hoy → 3:00
+      } else if (n >= TOTAL) {
+        text = "Completadas las 5 de hoy";            // ya hechas las 5
+        muted = true;
+      } else {
+        // Hora (en minutos) de la última extracción de hoy
+        let ultima = -1;
+        for (const x of hoyExtras) {
+          const [h, m] = x.hora.split(":").map(Number);
+          ultima = Math.max(ultima, h * 60 + m);
+        }
+        const restantes = TOTAL - n;                 // incluye la de las 22:10
+        const paso = (FIN - ultima) / restantes;
+        const proxima = paso <= 0 ? FIN : Math.round(ultima + paso);
+        text = fmt(Math.min(proxima, FIN));
       }
-      // Hora (en minutos) de la última extracción de hoy
-      let ultima = -1;
-      for (const x of hoyExtras) {
-        const [h, m] = x.hora.split(":").map(Number);
-        ultima = Math.max(ultima, h * 60 + m);
-      }
-      const restantes = TOTAL - n;                 // incluye la de las 22:10
-      const paso = (FIN - ultima) / restantes;
-      const proxima = paso <= 0 ? FIN : Math.round(ultima + paso);
-      el.textContent = fmt(Math.min(proxima, FIN));
+      els.forEach(el => {
+        el.textContent = text;
+        el.classList.toggle("muted", muted);
+      });
     }
 
     // Tarjeta de resumen de un día de extracciones
@@ -4827,12 +4896,32 @@
     const importFile = document.getElementById("import-file");
 
     function openSettings() {
+      renderNavVis(); // refleja el estado actual de visibilidad de pestañas
       settingsModal.hidden = false;
       setMenuOpen(false); // por si el menú móvil estaba abierto
     }
     function closeSettings() {
       settingsModal.hidden = true;
     }
+
+    // Mostrar/ocultar una pestaña de navegación desde Ajustes
+    document.getElementById("nav-vis-list").addEventListener("change", (e) => {
+      const chk = e.target.closest('input[type="checkbox"]');
+      if (!chk) return;
+      const panel = chk.dataset.panel;
+      let ocultos = panelsOcultos().slice();
+      if (chk.checked) ocultos = ocultos.filter(p => p !== panel); // visible
+      else if (!ocultos.includes(panel)) ocultos.push(panel);      // oculta
+      save(KEY_NAV_VIS, ocultos);
+      aplicarVisibilidadNav();
+      // Si se acaba de ocultar la pestaña activa, vuelve a Resumen
+      const activa = document.querySelector(".panel.active");
+      const nombre = activa ? activa.id.replace("panel-", "") : "home";
+      if (esPanelOculto(nombre)) {
+        activateTab("home");
+        if (db) idbSet(KEY_UI_TAB, "home").catch(() => {});
+      }
+    });
 
     // Vuelve a pintar todas las pestañas tras una importación
     function renderAll() {
@@ -4847,6 +4936,7 @@
       renderTareas();
       renderTareasAntes();
       renderCompletadas();
+      aplicarVisibilidadNav();
       updateStatus();
     }
 
@@ -5006,6 +5096,7 @@
       renderTareas();
       renderTareasAntes();
       renderCompletadas();
+      aplicarVisibilidadNav();
       updateEdad();
       updateCuarentena();
       updateMobileNav();
