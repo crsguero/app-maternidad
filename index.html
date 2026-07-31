@@ -1109,6 +1109,8 @@
     }
     .tarea.done { background: #f6f5fb; }
     .tarea.done .tarea-txt { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+    /* Tareas "Antes de la próxima extracción": fondo sutil, siempre al principio */
+    .tarea.tarea-antes { background: rgba(124, 108, 224, 0.10); border-color: rgba(124, 108, 224, 0.25); }
 
     /* Grupos de tareas por extracción (modal) */
     .te-group { margin-bottom: 20px; }
@@ -1187,11 +1189,8 @@
     .completadas-head h2 { margin: 0; }
     .completadas-count {
       font-size: 0.85rem;
-      font-weight: 700;
-      color: #fff;
-      background: var(--primary);
-      border-radius: 999px;
-      padding: 1px 9px;
+      font-weight: 600;
+      color: var(--muted);
       margin-left: 4px;
       vertical-align: middle;
     }
@@ -1875,13 +1874,6 @@
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">✅ Tareas</h2>
         <button type="button" class="info-btn" id="te-open" title="Tareas automáticas" aria-label="Tareas automáticas">⚙️</button>
-      </div>
-
-      <div class="card">
-        <div class="list-head">
-          <h2>Antes de la próxima extracción</h2>
-        </div>
-        <div id="tarea-antes-list"></div>
       </div>
 
       <div class="card">
@@ -4546,25 +4538,49 @@
       return d === 1 ? "Hace 1 día" : `Hace ${d} días`;
     }
 
+    function tareaRowHTML(x, key, sub, extraCls) {
+      return `<div class="tarea${extraCls ? " " + extraCls : ""}" data-key="${key}" data-id="${x.id}">
+        <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
+        <div class="tarea-txt">${escapeHtml(x.texto)}${sub || ""}</div>
+        <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
+      </div>`;
+    }
+
     function renderTareas() {
       const hoy = todayStr();
-      // Se ocultan las completadas (van a "Completadas") y las diferidas a un día futuro
-      const items = load(KEY_TAREAS).filter(x => !x.hecha && (!x.desde || x.desde <= hoy));
-      if (items.length === 0) {
+      // "Antes de la próxima extracción": destacadas y siempre al principio,
+      // por orden de creación (las nuevas al final de su bloque)
+      const antes = load(KEY_TAREAS_ANTES)
+        .filter(x => !x.hecha)
+        .sort((a, b) => (a.creada || 0) - (b.creada || 0));
+      // "Durante el día": manuales arriba (recientes primero) y automáticas al final.
+      // Se ocultan las completadas y las diferidas a un día futuro.
+      const esAuto = x => !!(x.auto || x.fecha || x.banoFecha);
+      const dia = load(KEY_TAREAS)
+        .filter(x => !x.hecha && (!x.desde || x.desde <= hoy))
+        .sort((a, b) => {
+          const aa = esAuto(a) ? 1 : 0, ab = esAuto(b) ? 1 : 0;
+          if (aa !== ab) return aa - ab;
+          if (aa) return (a.creada || 0) - (b.creada || 0);
+          return (b.creada || 0) - (a.creada || 0);
+        });
+
+      if (antes.length === 0 && dia.length === 0) {
         tareaList.innerHTML = '<div class="empty">No hay tareas. Pulsa «+ Nueva tarea».</div>';
         return;
       }
-      const ordenadas = items.slice().sort((a, b) => (b.creada || 0) - (a.creada || 0));
+
       let html = "";
-      for (const x of ordenadas) {
+      for (const x of antes) {
+        const hora = TE_HORAS[(x.extra || 0) - 1];
+        const src = x.extra ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>` : "";
+        html += tareaRowHTML(x, KEY_TAREAS_ANTES, src, "tarea-antes");
+      }
+      for (const x of dia) {
         let sub = "";
         if (x.banoFecha) sub = `<span class="tarea-src">${diasDesdeBano(x.banoFecha)}</span>`;
         else if (x.fecha) sub = `<span class="tarea-src">${formatDayMes(x.fecha)}</span>`;
-        html += `<div class="tarea">
-          <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
-          <div class="tarea-txt">${escapeHtml(x.texto)}${sub}</div>
-          <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
-        </div>`;
+        html += tareaRowHTML(x, KEY_TAREAS, sub);
       }
       tareaList.innerHTML = html;
     }
@@ -4572,12 +4588,12 @@
     // Al registrar un baño nuevo: "Recoger baño" ya, y "Baño" el día siguiente.
     function crearTareasBano(fecha) {
       const items = load(KEY_TAREAS);
-      items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now() });
+      items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now(), auto: true });
       const desde = addDays(fecha, 1); // aparece al comienzo del día siguiente (0:00)
       items.push({
         id: newId(), texto: "Baño", hecha: false,
         creada: new Date(desde + "T00:00").getTime(),
-        desde, banoFecha: fecha
+        desde, banoFecha: fecha, auto: true
       });
       save(KEY_TAREAS, items);
       renderTareas();
@@ -4602,11 +4618,13 @@
     });
 
     tareaList.addEventListener("click", (e) => {
+      const row = e.target.closest(".tarea");
+      const key = row ? row.dataset.key : KEY_TAREAS; // clave de origen (durante / antes)
       const chk = e.target.closest('input[type="checkbox"]');
       if (chk) {
-        const items = load(KEY_TAREAS);
+        const items = load(key);
         const it = items.find(x => x.id === chk.dataset.id);
-        if (it) { it.hecha = true; it.completada = Date.now(); save(KEY_TAREAS, items); }
+        if (it) { it.hecha = true; it.completada = Date.now(); save(key, items); }
         renderTareas();
         renderCompletadas();
         return;
@@ -4614,7 +4632,7 @@
       const btn = e.target.closest(".del");
       if (!btn) return;
       if (!confirm("¿Eliminar esta tarea?")) return;
-      save(KEY_TAREAS, load(KEY_TAREAS).filter(x => x.id !== btn.dataset.id));
+      save(key, load(key).filter(x => x.id !== btn.dataset.id));
       renderTareas();
     });
 
@@ -4631,7 +4649,7 @@
       const base = Date.now();
       // 'creada' mayor = más arriba; conservamos el orden de la plantilla
       plantilla.forEach((x, i) => {
-        items.push({ id: newId(), texto: x.texto, hecha: false, creada: base + (plantilla.length - i), fecha: hoy });
+        items.push({ id: newId(), texto: x.texto, hecha: false, creada: base + i, fecha: hoy, auto: true });
       });
       save(KEY_TAREAS, items);
       renderTareas();
@@ -4761,34 +4779,12 @@
       save(KEY_TAREAS_EXTRA, nuevo);
     }
 
-    /* --- Sección "Antes de la próxima extracción" --- */
-    const tareaAntesList = document.getElementById("tarea-antes-list");
+    /* --- Tareas "Antes de la próxima extracción" (van en la lista unificada) --- */
+    // Se renderizan dentro de renderTareas(); este alias mantiene las llamadas existentes.
+    function renderTareasAntes() { renderTareas(); }
 
-    function renderTareasAntes() {
-      // Las completadas desaparecen de la lista (se ven en "Completadas")
-      const items = load(KEY_TAREAS_ANTES).filter(x => !x.hecha);
-      if (items.length === 0) {
-        tareaAntesList.innerHTML = '<div class="empty">No hay tareas. Se añadirán al registrar una extracción.</div>';
-        return;
-      }
-      const ordenadas = items.slice().sort((a, b) => (b.creada || 0) - (a.creada || 0));
-      let html = "";
-      for (const x of ordenadas) {
-        const hora = TE_HORAS[(x.extra || 0) - 1];
-        const src = x.extra
-          ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>`
-          : "";
-        html += `<div class="tarea">
-          <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
-          <div class="tarea-txt">${escapeHtml(x.texto)}${src}</div>
-          <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
-        </div>`;
-      }
-      tareaAntesList.innerHTML = html;
-    }
-
-    // Copia las tareas plantilla de la extracción nº n (1–5) a esta sección.
-    // Las tareas se acumulan: no se borran las de extracciones anteriores.
+    // Copia las tareas plantilla de la extracción nº n (1–5). Se acumulan:
+    // no se borran las de extracciones anteriores.
     function agregarTareasAntes(n) {
       if (!(n >= 1 && n <= 5)) return;
       const plantilla = load(KEY_TAREAS_EXTRA).filter(x => x.extra === n);
@@ -4800,23 +4796,6 @@
       });
       save(KEY_TAREAS_ANTES, items);
     }
-
-    tareaAntesList.addEventListener("click", (e) => {
-      const chk = e.target.closest('input[type="checkbox"]');
-      if (chk) {
-        const items = load(KEY_TAREAS_ANTES);
-        const it = items.find(x => x.id === chk.dataset.id);
-        if (it) { it.hecha = true; it.completada = Date.now(); save(KEY_TAREAS_ANTES, items); }
-        renderTareasAntes();
-        renderCompletadas();
-        return;
-      }
-      const btn = e.target.closest(".del");
-      if (!btn) return;
-      if (!confirm("¿Eliminar esta tarea?")) return;
-      save(KEY_TAREAS_ANTES, load(KEY_TAREAS_ANTES).filter(x => x.id !== btn.dataset.id));
-      renderTareasAntes();
-    });
 
     /* --- Tareas completadas (acumuladas de ambas listas) --- */
     const completadasCard = document.getElementById("completadas-card");
@@ -4934,7 +4913,6 @@
       renderBano();
       renderPeso();
       renderTareas();
-      renderTareasAntes();
       renderCompletadas();
       aplicarVisibilidadNav();
       updateStatus();
@@ -5094,7 +5072,6 @@
       setPesoDefaults();
       renderPeso();
       renderTareas();
-      renderTareasAntes();
       renderCompletadas();
       aplicarVisibilidadNav();
       updateEdad();
