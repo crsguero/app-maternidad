@@ -3722,7 +3722,7 @@
       } else {
         items.push(Object.assign({ id: newId() }, datos));
         save(KEY_BANO, items);
-        crearTareasBano(datos.fecha); // "Recoger baño" ahora y "Baño" mañana
+        crearTareasBano(datos.fecha); // "Recoger baño" ahora y "Bañar a Sofía" en dos días
       }
       banoWeek = weekStart(datos.fecha); // mostrar la semana del baño creado/editado
       closeBanoModal();
@@ -4585,13 +4585,13 @@
       tareaList.innerHTML = html;
     }
 
-    // Al registrar un baño nuevo: "Recoger baño" ya, y "Baño" el día siguiente.
+    // Al registrar un baño nuevo: "Recoger baño" ya, y "Bañar a Sofía" dos días después.
     function crearTareasBano(fecha) {
       const items = load(KEY_TAREAS);
       items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now(), auto: true });
-      const desde = addDays(fecha, 1); // aparece al comienzo del día siguiente (0:00)
+      const desde = addDays(fecha, 2); // aparece a las 0:00 de dos días después
       items.push({
-        id: newId(), texto: "Baño", hecha: false,
+        id: newId(), texto: "Bañar a Sofía", hecha: false,
         creada: new Date(desde + "T00:00").getTime(),
         desde, banoFecha: fecha, auto: true
       });
