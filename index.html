@@ -632,6 +632,23 @@
     .mood-btn.selected[data-animo="neutra"] { border-color: #e0a14a; background: rgba(224, 161, 74, 0.18); }
     .mood-btn.selected[data-animo="triste"] { border-color: var(--danger); background: rgba(224, 90, 90, 0.15); }
 
+    /* Selector de quién hizo la toma (Mamá / Papá), opcional */
+    .quien-group { display: flex; gap: 8px; }
+    .quien-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fbfaff;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quien-btn:hover { background: #f3f1fb; }
+    .quien-btn.selected { border-color: var(--primary); background: #efeafc; color: var(--primary-dark); }
+
     /* Botones del formulario de Extracción: mismo ancho y 24px de espacio arriba */
     #form-extra .form-actions { margin-top: 48px; }
     #form-extra .form-actions .primary,
@@ -656,7 +673,7 @@
     .toma.toma-clickable { cursor: pointer; padding-right: 24px; }
     .toma-clickable:hover { border-color: var(--primary); background: #f7f5ff; }
 
-    .mood-ico { font-size: 1.35rem; line-height: 1; flex: none; }
+    .mood-ico, .quien-ico { font-size: 1.35rem; line-height: 1; flex: none; }
     .toma-motivo { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 
     .info-head {
@@ -1416,10 +1433,19 @@
             </div>
           </div>
 
+          <div class="field">
+            <label>¿Quién? <span class="opt">(opcional)</span></label>
+            <div class="quien-group" id="t-quien">
+              <button type="button" class="quien-btn" data-quien="mama">🤱🏻 Mamá</button>
+              <button type="button" class="quien-btn" data-quien="papa">👨🏻‍🍼 Papá</button>
+            </div>
+          </div>
+
           <div class="form-actions">
             <button type="submit" class="primary" id="t-submit">Guardar toma</button>
             <button type="button" class="secondary" id="t-cancel">Cancelar</button>
           </div>
+          <button type="button" class="danger-btn" id="t-delete" hidden>Eliminar toma</button>
         </form>
         </div>
       </div>
@@ -2502,12 +2528,14 @@
     const tHora = document.getElementById("t-hora");
     const tMaterna = document.getElementById("t-materna");
     const tFormula = document.getElementById("t-formula");
+    const tQuien = document.getElementById("t-quien");
     const tList = document.getElementById("t-list");
     const tTitulo = document.getElementById("t-titulo");
     const tSubmit = document.getElementById("t-submit");
     const tCancel = document.getElementById("t-cancel");
     const tNew = document.getElementById("t-new");
     const tModal = document.getElementById("t-modal");
+    const tDelete = document.getElementById("t-delete");
     let editTomaId = null;
     let tomaDay = null; // día (fecha) que se muestra en el historial paginado
 
@@ -2521,6 +2549,27 @@
       return t.tipo === "formula" ? Number(t.cantidad) || 0 : 0;
     }
     function tomaTotal(t) { return tomaMaterna(t) + tomaFormula(t); }
+
+    // Selector opcional de quién hizo la toma (Mamá / Papá), toggleable
+    function setQuien(q) {
+      tQuien.querySelectorAll(".quien-btn").forEach(b =>
+        b.classList.toggle("selected", b.dataset.quien === q));
+    }
+    function getQuien() {
+      const sel = tQuien.querySelector(".quien-btn.selected");
+      return sel ? sel.dataset.quien : "";
+    }
+    tQuien.querySelectorAll(".quien-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        setQuien(b.classList.contains("selected") ? "" : b.dataset.quien);
+      });
+    });
+    function quienIco(q) {
+      return q === "mama" ? "🤱🏻" : q === "papa" ? "👨🏻‍🍼" : "";
+    }
+    function quienNombre(q) {
+      return q === "mama" ? "Mamá" : q === "papa" ? "Papá" : "";
+    }
 
     function setTomaDefaults() {
       tFecha.value = todayStr();
@@ -2538,6 +2587,8 @@
       tSubmit.textContent = "Guardar toma";
       tMaterna.value = "";
       tFormula.value = "";
+      setQuien("");
+      tDelete.hidden = true;
       setTomaDefaults();
       tModal.hidden = false;
       tMaterna.focus();
@@ -2552,6 +2603,8 @@
       const m = tomaMaterna(toma), f = tomaFormula(toma);
       tMaterna.value = m ? m : "";
       tFormula.value = f ? f : "";
+      setQuien(toma.quien || "");
+      tDelete.hidden = false;
       tTitulo.textContent = "Editar toma";
       tSubmit.textContent = "Actualizar toma";
       tModal.hidden = false;
@@ -2792,15 +2845,15 @@
         if (m > 0) parts.push(`<span class="tipo-linea"><span class="dot materna"></span>Materna ${m} ml</span>`);
         if (f > 0) parts.push(`<span class="tipo-linea"><span class="dot formula"></span>Fórmula ${f} ml</span>`);
         const info = parts.join("");
-        html += `<div class="toma">
+        const ico = quienIco(t.quien);
+        html += `<div class="toma toma-clickable" data-id="${t.id}" title="Editar toma">
+            ${ico ? `<span class="quien-ico" title="${quienNombre(t.quien)}">${ico}</span>` : ""}
             <div class="toma-info">
               <div class="toma-time">${t.hora}</div>
               <div class="toma-type">${info}</div>
               ${gap ? `<div class="toma-gap"><span class="gap">${gap}</span></div>` : ""}
             </div>
             <div class="toma-amount">${m + f} ml</div>
-            <button class="edit" data-id="${t.id}" title="Editar" aria-label="Editar toma">✎</button>
-            <button class="del" data-id="${t.id}" title="Eliminar" aria-label="Eliminar toma">✕</button>
           </div>`;
       }
       html += "</div>";
@@ -2833,7 +2886,8 @@
         fecha: tFecha.value,
         hora: tHora.value,
         mlMaterna,
-        mlFormula
+        mlFormula,
+        quien: getQuien()
       };
       const tomas = load(KEY_TOMAS);
       if (editTomaId) {
@@ -3030,12 +3084,17 @@
     });
 
     tList.addEventListener("click", (e) => {
-      const editBtn = e.target.closest(".edit");
-      if (editBtn) { startTomaEdit(editBtn.dataset.id); return; }
-      const btn = e.target.closest(".del");
-      if (!btn) return;
+      // Clic en la fila → abrir el modal de edición
+      const row = e.target.closest(".toma-clickable");
+      if (row && row.dataset.id) startTomaEdit(row.dataset.id);
+    });
+
+    // Botón "Eliminar" dentro del modal de edición
+    tDelete.addEventListener("click", () => {
+      if (!editTomaId) return;
       if (!confirm("¿Eliminar esta toma?")) return;
-      save(KEY_TOMAS, load(KEY_TOMAS).filter(t => t.id !== btn.dataset.id));
+      save(KEY_TOMAS, load(KEY_TOMAS).filter(t => t.id !== editTomaId));
+      closeTomaModal();
       renderTomas();
       updateStatus();
     });
