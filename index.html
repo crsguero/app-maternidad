@@ -897,7 +897,14 @@
       background: #fbfaff;
     }
     .resumen-dia:last-child { margin-bottom: 0; }
-    .rango-row { margin: 6px 0 10px; }
+    .rango-row {
+      margin: 6px 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .rango-peso { font-size: 0.75rem; color: var(--muted); flex: none; margin-left: auto; }
     .rango-badge {
       display: inline-block;
       font-size: 0.75rem;
@@ -1476,6 +1483,7 @@
           <div class="list-head">
             <h2>Resumen por día</h2>
           </div>
+          <div class="pager" id="t-resumen-pager"></div>
           <div id="t-resumen"></div>
         </div>
       </div>
@@ -1496,10 +1504,10 @@
           </div>
           <ul class="horas-list">
             <li>3:00</li>
-            <li>7:50</li>
-            <li>12:40</li>
-            <li>17:30</li>
-            <li>22:10</li>
+            <li>8:30</li>
+            <li>12:50</li>
+            <li>17:10</li>
+            <li>21:30</li>
           </ul>
         </div>
       </div>
@@ -2538,6 +2546,7 @@
     const tDelete = document.getElementById("t-delete");
     let editTomaId = null;
     let tomaDay = null; // día (fecha) que se muestra en el historial paginado
+    let tomaResumenWeek = null; // inicio de la semana mostrada en el resumen paginado
 
     // ml por tipo, compatible con tomas antiguas ({cantidad, tipo}) y nuevas ({mlMaterna, mlFormula})
     function tomaMaterna(t) {
@@ -2679,6 +2688,11 @@
       });
     }
 
+    // Primeras dos semanas: las cantidades no salían de un cálculo por peso,
+    // sino de las indicaciones del Materno.
+    const RANGO_NOTA_DESDE = "2026-06-21";
+    const RANGO_NOTA_HASTA = "2026-07-18";
+
     // Tarjeta de resumen de un día de tomas
     // Rango orientativo de ml/día según la edad de la niña (nació FECHA_NACIMIENTO).
     // Se usa solo para días previos a cualquier ajuste manual del modal.
@@ -2702,15 +2716,37 @@
       return cfgs[cfgs.length - 1];
     }
 
+    // Ajuste más antiguo guardado: da los ml/kg de los tramos anteriores al primer ajuste
+    function configTomaMasAntigua() {
+      const cfgs = load(KEY_TOMA_CFG).filter(c => c.desde);
+      if (!cfgs.length) return null;
+      cfgs.sort((a, b) => a.desde.localeCompare(b.desde));
+      return cfgs[0];
+    }
+
+    // Pesos ya conocidos de tramos pasados (el modal de ajustes solo puede guardar
+    // desde hoy). Los ml/kg salen del ajuste guardado; aquí solo cambia el peso.
+    const PESOS_HIST = [
+      { desde: "2026-07-19", hasta: "2026-07-20", peso: 3.925 },
+      { desde: "2026-07-21", hasta: "2026-07-27", peso: 4.38 }
+    ];
+    function pesoHist(fecha) {
+      const tramo = PESOS_HIST.find(p => fecha >= p.desde && fecha <= p.hasta);
+      return tramo ? tramo.peso : null;
+    }
+
     // Rango de ml/día para una fecha. Desde el primer ajuste manual (según su
     // fecha de vigencia) se calcula peso*mín – peso*máx (redondeado sin decimales);
-    // antes de eso, se mantiene el rango orientativo por edad.
+    // antes de eso, se mantiene el rango orientativo por edad, salvo en los tramos
+    // con peso conocido (PESOS_HIST), que sí se calculan por peso.
     function rangoTotalDia(fecha) {
-      const cfg = configTomaVigente(fecha);
+      const hist = pesoHist(fecha);
+      const cfg = configTomaVigente(fecha) || (hist ? configTomaMasAntigua() : null);
       if (cfg) {
-        const peso = Number(cfg.peso), min = Number(cfg.min), max = Number(cfg.max);
+        const peso = hist != null ? hist : Number(cfg.peso);
+        const min = Number(cfg.min), max = Number(cfg.max);
         if (peso > 0 && min > 0 && max > 0) {
-          return { min: Math.round(peso * min), max: Math.round(peso * max) };
+          return { min: Math.round(peso * min), max: Math.round(peso * max), peso };
         }
         return null; // ajuste incompleto: sin rango
       }
@@ -2736,8 +2772,19 @@
         if (totalMl < rango.min) { cls = "bajo"; label = "Por debajo"; }
         else if (totalMl > rango.max) { cls = "alto"; label = "Por encima"; }
         else { cls = "ok"; label = "En rango"; }
-        badge = `<div class="rango-row"><span class="rango-badge ${cls}" title="Rango recomendado: ${rango.min}-${rango.max} ml/día">${label} · ${rango.min}-${rango.max} ml</span></div>`;
+        badge = `<span class="rango-badge ${cls}" title="Rango recomendado: ${rango.min}-${rango.max} ml/día">${label} · ${rango.min}-${rango.max} ml</span>`;
       }
+
+      // A la derecha del rango: durante las dos primeras semanas, las cantidades
+      // venían de las indicaciones del Materno; después, el peso del ajuste
+      // vigente (solo existe si el rango sale de un ajuste manual).
+      let nota = "";
+      if (fecha >= RANGO_NOTA_DESDE && fecha <= RANGO_NOTA_HASTA) {
+        nota = `<span class="rango-peso">Indicaciones materno</span>`;
+      } else if (rango && rango.peso) {
+        nota = `<span class="rango-peso" title="Peso con el que se calcula el rango">${Number(rango.peso).toFixed(3).replace(".", ",")} kg</span>`;
+      }
+      const rangoRow = badge || nota ? `<div class="rango-row">${badge}${nota}</div>` : "";
 
       return `<div class="resumen-dia"${attrs}>
         <div class="resumen-head">
@@ -2748,7 +2795,7 @@
             ${avgGap ? `<span class="stat-val">Cada ${avgGap}</span>` : ""}
           </div>
         </div>
-        ${badge}
+        ${rangoRow}
         <div class="pct-bar">
           <div class="pct-materna" style="width:${pctMaterna}%"></div>
           <div class="pct-formula" style="width:${pctFormula}%"></div>
@@ -2774,17 +2821,31 @@
 
     function renderTomasResumen() {
       const el = document.getElementById("t-resumen");
+      const pager = document.getElementById("t-resumen-pager");
       if (!el) return;
       const tomas = load(KEY_TOMAS);
       if (tomas.length === 0) {
         el.innerHTML = '<div class="empty">Aún no hay tomas registradas.</div>';
+        if (pager) pager.innerHTML = "";
         return;
       }
       const groups = {};
       for (const t of tomas) (groups[t.fecha] = groups[t.fecha] || []).push(t);
+      const dias = Object.keys(groups);
+
+      // Semanas con datos (por su fecha de inicio), de más reciente a más antigua
+      const semanas = [...new Set(dias.map(weekStart))].sort((a, b) => b.localeCompare(a));
+      if (!semanas.includes(tomaResumenWeek)) tomaResumenWeek = semanas[0];
+      const idx = semanas.indexOf(tomaResumenWeek);
+      renderResumenSemanaPager("t-resumen-pager", semanas, idx);
+
+      // Días de la semana seleccionada (con datos), de más reciente a más antiguo
+      const diasSemana = dias
+        .filter(f => weekStart(f) === tomaResumenWeek)
+        .sort((a, b) => b.localeCompare(a));
 
       let html = "";
-      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+      for (const fecha of diasSemana) {
         html += tomasDiaCardHTML(fecha, groups[fecha], avgGapDia(tomas, fecha), true);
       }
       el.innerHTML = html;
@@ -2945,6 +3006,20 @@
       if (!card) return;
       e.preventDefault();
       goToTomaDay(card.dataset.fecha);
+    });
+
+    // Paginador semanal del Resumen
+    document.getElementById("t-resumen-pager").addEventListener("click", (e) => {
+      const btn = e.target.closest(".pager-btn");
+      if (!btn || btn.disabled) return;
+      const semanas = [...new Set(load(KEY_TOMAS).map(t => weekStart(t.fecha)))].sort((a, b) => b.localeCompare(a));
+      let idx = semanas.indexOf(tomaResumenWeek);
+      if (idx < 0) idx = 0;
+      idx = btn.dataset.dir === "older"
+        ? Math.min(idx + 1, semanas.length - 1)
+        : Math.max(idx - 1, 0);
+      tomaResumenWeek = semanas[idx];
+      renderTomasResumen();
     });
 
     // Modal de información (cantidades orientativas por edad)
@@ -3198,13 +3273,15 @@
     }
 
     // Hora recomendada para la próxima extracción del día.
-    // 5 extracciones/día; la última siempre a las 22:10; las que quedan se
-    // reparten equidistantes entre la última registrada hoy y las 22:10.
+    // 5 extracciones/día con tres horas fijas (3:00, 8:30 y 21:30); las dos
+    // intermedias se reparten equidistantes entre la última registrada hoy
+    // y las 21:30.
     function updateNextExtraction() {
       const els = document.querySelectorAll(".e-next");
       if (!els.length) return;
-      const FIN = 22 * 60 + 10;   // 22:10 en minutos
-      const PRIMERA = 3 * 60;     // 3:00, la primera del día
+      const FIN = 21 * 60 + 30;    // 21:30, la última del día
+      const PRIMERA = 3 * 60;      // 3:00, la primera del día
+      const SEGUNDA = 8 * 60 + 30; // 8:30, la segunda del día
       const TOTAL = 5;
       const fmt = min => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
 
@@ -3215,6 +3292,8 @@
       let text, muted = false;
       if (n === 0) {
         text = fmt(PRIMERA);                          // aún ninguna hoy → 3:00
+      } else if (n === 1) {
+        text = fmt(SEGUNDA);                          // hecha la primera → 8:30
       } else if (n >= TOTAL) {
         text = "Completadas las 5 de hoy";            // ya hechas las 5
         muted = true;
@@ -3225,7 +3304,7 @@
           const [h, m] = x.hora.split(":").map(Number);
           ultima = Math.max(ultima, h * 60 + m);
         }
-        const restantes = TOTAL - n;                 // incluye la de las 22:10
+        const restantes = TOTAL - n;                 // incluye la de las 21:30
         const paso = (FIN - ultima) / restantes;
         const proxima = paso <= 0 ? FIN : Math.round(ultima + paso);
         text = fmt(Math.min(proxima, FIN));
@@ -3278,8 +3357,9 @@
         : `${s.d} ${s.mes} - ${e.d} ${e.mes} ${e.y}`;
     }
 
-    function renderResumenSemanaPager(semanas, idx) {
-      const pager = document.getElementById("e-resumen-pager");
+    // Paginador semanal de un resumen (lo comparten Tomas y Extracciones)
+    function renderResumenSemanaPager(pagerId, semanas, idx) {
+      const pager = document.getElementById(pagerId);
       if (!pager) return;
       if (semanas.length === 0) { pager.innerHTML = ""; return; }
       const start = semanas[idx];
@@ -3313,7 +3393,7 @@
       const semanas = [...new Set(dias.map(weekStart))].sort((a, b) => b.localeCompare(a));
       if (!semanas.includes(extraResumenWeek)) extraResumenWeek = semanas[0];
       const idx = semanas.indexOf(extraResumenWeek);
-      renderResumenSemanaPager(semanas, idx);
+      renderResumenSemanaPager("e-resumen-pager", semanas, idx);
 
       // Días de la semana seleccionada (con datos), de más reciente a más antiguo
       const diasSemana = dias
@@ -3768,6 +3848,9 @@
 
     formBano.addEventListener("submit", (e) => {
       e.preventDefault();
+      // Evita el doble registro si el envío se dispara dos veces (p. ej. doble
+      // toque en móvil): tras el primer envío el modal ya está cerrado.
+      if (baModal.hidden) return;
       if (!baJabonSi.checked && !baJabonNo.checked) {
         alert("Indica si se ha usado jabón o no.");
         return;
@@ -4716,7 +4799,7 @@
 
     /* --- Tareas por extracción (modal) --- */
     // Horas de referencia de las 5 extracciones del día
-    const TE_HORAS = ["3:00", "7:50", "12:40", "17:30", "22:10"];
+    const TE_HORAS = ["3:00", "8:30", "12:50", "17:10", "21:30"];
     const teOpen = document.getElementById("te-open");
     const teModal = document.getElementById("te-modal");
     const teClose = document.getElementById("te-close");
