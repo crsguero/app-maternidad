@@ -1197,6 +1197,102 @@
     .tarea-drag:active { cursor: grabbing; }
     .tarea.dragging { opacity: 0.6; box-shadow: 0 4px 12px rgba(40, 30, 80, 0.15); }
 
+    /* Toggle "Añadir a Hoy" (solo en las tareas de "Durante el día") */
+    .te-flag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .te-flag-lbl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tarea .te-flag input[type="checkbox"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .te-switch {
+      flex: none;
+      position: relative;
+      width: 34px;
+      height: 20px;
+      border-radius: 999px;
+      background: #d9d5ec;
+      transition: background 0.15s ease;
+    }
+    .te-switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(40, 30, 80, 0.25);
+      transition: transform 0.15s ease;
+    }
+    .te-flag input:checked + .te-switch,
+    .te-switch.on { background: var(--primary); }
+    .te-flag input:checked + .te-switch::after,
+    .te-switch.on::after { transform: translateX(14px); }
+    .te-flag input:focus-visible + .te-switch { outline: 2px solid var(--primary-dark); outline-offset: 2px; }
+    /* Variante de solo lectura (tareas generadas por un baño): activa y fija */
+    .te-flag-ro, .te-flag-ro .te-flag-lbl { cursor: default; }
+    .tarea.done .te-flag { text-decoration: none; }
+
+    /* Icono de información con tooltip al pasar el ratón */
+    .te-info {
+      flex: none;
+      position: relative;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-style: normal;
+      line-height: 14px;
+      text-align: center;
+      cursor: help;
+    }
+    .te-info::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 220px;
+      max-width: 60vw;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(40, 30, 80, 0.95);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-style: normal;
+      line-height: 1.35;
+      text-align: left;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.12s ease;
+      pointer-events: none;
+      z-index: 60;
+    }
+    .te-info:hover::after,
+    .te-info:focus-visible::after { opacity: 1; visibility: visible; }
+
     /* Tarjeta "Completadas" (plegable) */
     .completadas-head {
       width: 100%;
@@ -4682,10 +4778,27 @@
       return d === 1 ? "Hace 1 día" : `Hace ${d} días`;
     }
 
+    // Toggle "Añadir a Hoy": no hace nada en esta app; el estado se guarda (y
+    // se sincroniza) para que lo pueda usar la aplicación Tareas.
+    const TE_HOY_TIP = "Esta funcionalidad no tiene ningún efecto en esta aplicación. Está pensado para ser utilizada en la aplicación Tareas.";
+    const TE_INFO_HTML = `<span class="te-info" tabindex="0" role="img" aria-label="${TE_HOY_TIP}" data-tip="${TE_HOY_TIP}">i</span>`;
+
+    // Versión fija (siempre activa, no modificable) para las tareas generadas
+    // al registrar un baño. Sin <input> para no interferir con la lista.
+    function teHoyFijoHTML() {
+      return `<div class="te-flag te-flag-ro">
+          <span class="te-flag-lbl">
+            <span class="te-switch on" role="img" aria-label="Añadir a Hoy: activado"></span>
+            <span>Añadir a Hoy</span>
+          </span>
+          ${TE_INFO_HTML}
+        </div>`;
+    }
+
     function tareaRowHTML(x, key, sub, extraCls) {
       return `<div class="tarea${extraCls ? " " + extraCls : ""}" data-key="${key}" data-id="${x.id}">
         <input type="checkbox" data-id="${x.id}" aria-label="Marcar tarea">
-        <div class="tarea-txt">${escapeHtml(x.texto)}${sub || ""}</div>
+        <div class="tarea-txt">${escapeHtml(x.texto)}${sub || ""}${x.hoy ? teHoyFijoHTML() : ""}</div>
         <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
       </div>`;
     }
@@ -4730,14 +4843,15 @@
     }
 
     // Al registrar un baño nuevo: "Recoger baño" ya, y "Bañar a Sofía" dos días después.
+    // Ambas nacen con "Añadir a Hoy" activo y fijo (para la aplicación Tareas).
     function crearTareasBano(fecha) {
       const items = load(KEY_TAREAS);
-      items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now(), auto: true });
+      items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now(), auto: true, hoy: true });
       const desde = addDays(fecha, 2); // aparece a las 0:00 de dos días después
       items.push({
         id: newId(), texto: "Bañar a Sofía", hecha: false,
         creada: new Date(desde + "T00:00").getTime(),
-        desde, banoFecha: fecha, auto: true
+        desde, banoFecha: fecha, auto: true, hoy: true
       });
       save(KEY_TAREAS, items);
       renderTareas();
@@ -4809,11 +4923,23 @@
 
     // HTML de un grupo del modal (extra = 0 para "Durante el día"; 1–5 para extracciones).
     // Se muestran en el orden del array (reordenable con arrastre).
+    function teHoyHTML(x) {
+      return `<div class="te-flag">
+          <label class="te-flag-lbl">
+            <input type="checkbox" class="te-hoy" data-id="${x.id}"${x.hoy ? " checked" : ""}>
+            <span class="te-switch" aria-hidden="true"></span>
+            <span>Añadir a Hoy</span>
+          </label>
+          ${TE_INFO_HTML}
+        </div>`;
+    }
+
     function teGroupHTML(extraId, titulo, sub, items) {
       const suyas = items.filter(x => x.extra === extraId);
+      const conHoy = extraId === 0; // solo el grupo "Durante el día" lleva el toggle
       let lista = suyas.map(x => `<div class="tarea" data-id="${x.id}">
           <span class="tarea-drag" aria-hidden="true" title="Arrastra para reordenar">⠿</span>
-          <div class="tarea-txt">${escapeHtml(x.texto)}</div>
+          <div class="tarea-txt">${escapeHtml(x.texto)}${conHoy ? teHoyHTML(x) : ""}</div>
           <button class="del" data-id="${x.id}" title="Eliminar" aria-label="Eliminar tarea">✕</button>
         </div>`).join("");
       if (!suyas.length) lista = '<div class="te-empty">Sin tareas.</div>';
@@ -4860,6 +4986,17 @@
       renderTareasExtra();
       const nuevo = teGroups.querySelector(`.te-add[data-extra="${extra}"] input`);
       if (nuevo) nuevo.focus();
+    });
+
+    // Guarda el estado del toggle "Añadir a Hoy" (sin re-render: no altera la lista).
+    teGroups.addEventListener("change", (e) => {
+      const chk = e.target.closest(".te-hoy");
+      if (!chk) return;
+      const all = load(KEY_TAREAS_EXTRA);
+      const it = all.find(x => x.id === chk.dataset.id);
+      if (!it) return;
+      it.hoy = chk.checked;
+      save(KEY_TAREAS_EXTRA, all);
     });
 
     teGroups.addEventListener("click", (e) => {
