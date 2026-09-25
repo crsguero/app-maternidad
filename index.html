@@ -704,15 +704,19 @@
     }
     .info-table td:last-child { font-weight: 700; white-space: nowrap; }
 
-    .horas-list { list-style: none; margin: 0; padding: 0; }
-    .horas-list li {
-      padding: 12px 4px;
+    .horas-list { margin: 0; padding: 0; }
+    .horas-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 4px;
       border-bottom: 1px solid var(--border);
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--primary-dark);
     }
-    .horas-list li:last-child { border-bottom: none; }
+    .horas-row:last-child { border-bottom: none; }
+    .horas-row span { font-weight: 700; color: var(--primary-dark); }
+    .horas-gap { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+    .horas-row input[type="time"] { width: auto; min-width: 110px; }
 
     .pct-bar .mood-feliz { background: #2f8f6e; }
     .pct-bar .mood-neutra { background: #e0a14a; }
@@ -1334,6 +1338,7 @@
       margin-top: 4px;
     }
     .status.ok { color: #2f8f6e; background: rgba(59, 184, 154, 0.12); }
+    .status.warn { color: #9a6b12; background: rgba(230, 168, 51, 0.16); }
     .status.err { color: var(--danger); background: rgba(224, 90, 90, 0.12); font-weight: 600; }
 
     /* ---------- Login / Auth ---------- */
@@ -1600,13 +1605,7 @@
             <h2>Horario de extracciones</h2>
             <button type="button" class="section-menu-close" id="e-info-close" aria-label="Cerrar">✕</button>
           </div>
-          <ul class="horas-list">
-            <li>3:00</li>
-            <li>8:30</li>
-            <li>12:50</li>
-            <li>17:10</li>
-            <li>21:30</li>
-          </ul>
+          <div class="horas-list" id="e-horas-list"></div>
         </div>
       </div>
 
@@ -2043,7 +2042,7 @@
         </div>
       </div>
 
-      <!-- Modal: tareas asociadas a cada una de las 5 extracciones del día -->
+      <!-- Modal: tareas asociadas a cada una de las 4 extracciones del día -->
       <div class="modal-overlay" id="te-modal" hidden>
         <div class="modal-box card">
           <div class="info-head">
@@ -2172,7 +2171,9 @@
     const KEY_DIA_APLICADA = "tareas-dia-aplicada"; // último día en que se copió la plantilla "Durante el día"
     const KEY_TOMA_CFG = "tomas-config"; // ajustes de tomas: peso y cantidades min/max
     const KEY_NAV_VIS = "nav-ocultas"; // pestañas de navegación ocultas (array de nombres de panel)
-    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS];
+    const KEY_EXTRA_HORAS = "extracciones-horario"; // horas ("HH:MM") de las 4 extracciones del día
+    const HORAS_EXTRA_DEF = ["3:00", "8:30", "15:00", "21:30"]; // horario por defecto
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS, KEY_EXTRA_HORAS];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
     /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
@@ -2185,8 +2186,17 @@
     const STORE = "kv";
     let db = null;
     let fbReady = false;     // true cuando Firebase está autenticado y escuchando
+    let fbOnline = false;    // true mientras el websocket con la nube está vivo (.info/connected)
+    const fbSynced = {};     // clave -> true cuando ya ha llegado su primer snapshot de la nube
     let appStarted = false;  // evita arrancar la app dos veces
-    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [] };
+    /* ¿Podemos escribir en la nube fiándonos de lo que tenemos en memoria?
+       Solo si hay listener enganchado (fbReady), la conexión está viva (fbOnline)
+       y ya hemos recibido el nodo (fbSynced). Con esas tres, `cache[key]` y el
+       nodo remoto están alineados, que es lo que hace segura la escritura por
+       índice. Sin ellas, el cambio va a la cola en vez de a Firebase: subir el
+       array entero desde una caché vieja resucitaba tareas ya completadas. */
+    function nubeFiable(key) { return fbReady && fbOnline && !!fbSynced[key]; }
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [], [KEY_EXTRA_HORAS]: [] };
 
     function openDB() {
       return new Promise((resolve, reject) => {
@@ -2229,14 +2239,142 @@
       }
     }
 
+    /* ---------- Escrituras por tarea (en vez de por lista entera) ----------
+       `save()` sube el array completo del nodo. Si la caché en memoria estaba
+       vieja (websocket caído, pestaña dormida, arranque sin red), esa subida
+       deshacía lo que hubiera hecho otro dispositivo: era lo que hacía
+       reaparecer como pendientes tareas ya completadas días antes.
+
+       Para las listas de tareas escribimos solo el hijo que cambia, y solo
+       cuando `nubeFiable(key)` garantiza que lo que tenemos en memoria coincide
+       con el nodo remoto. Si no, el cambio va a una cola local (`outbox`) y se
+       aplica al reconectar contra los datos frescos, tarea a tarea. */
+    const KEY_OUTBOX = "outbox"; // cola local; fuera de ALL_KEYS: no se sincroniza
+    const remoto = {};           // último snapshot tal cual llegó, sin la cola encima
+    let outbox = [];             // [{op:"patch"|"append"|"remove", key, id?, patch?, items?}]
+
+    function guardarLocal(key, items) {
+      cache[key] = items;
+      if (db) idbSet(key, items).catch((e) => showError("al guardar: " + (e && e.message)));
+    }
+    function saveOutbox() {
+      if (db) idbSet(KEY_OUTBOX, outbox).catch(() => {});
+      updateStatus();
+    }
+
+    function escribirPatch(key, idx, patch) {
+      // update() con un campo a null borra ese campo (así se limpia `completada`)
+      fdb.ref(FB_ROOT + "/" + key + "/" + idx).update(patch)
+        .catch((e) => showError("al sincronizar: " + (e && e.message)));
+    }
+    function escribirAppend(key, desde, objs) {
+      const hijos = {};
+      objs.forEach((o, i) => { hijos[desde + i] = o; });
+      fdb.ref(FB_ROOT + "/" + key).update(hijos)
+        .catch((e) => showError("al sincronizar: " + (e && e.message)));
+    }
+    function escribirNodo(key, arr) {
+      fdb.ref(FB_ROOT + "/" + key).set(arr && arr.length ? arr : null)
+        .catch((e) => showError("al sincronizar: " + (e && e.message)));
+    }
+
+    // Resuelve una operación contra el último snapshot recibido y la escribe.
+    // Devuelve false si ya no aplica (la tarea desapareció en la nube).
+    function aplicarOpEnNube(o) {
+      const base = remoto[o.key] || [];
+      if (o.op === "patch") {
+        const i = base.findIndex((x) => x && x.id === o.id);
+        if (i === -1) return false;
+        escribirPatch(o.key, i, o.patch);
+        remoto[o.key] = base.map((x, j) => (j === i ? Object.assign({}, x, o.patch) : x));
+      } else if (o.op === "append") {
+        const ids = {};
+        base.forEach((x) => { if (x) ids[x.id] = true; });
+        const nuevos = o.items.filter((x) => !ids[x.id]);
+        if (!nuevos.length) return false;
+        escribirAppend(o.key, base.length, nuevos);
+        remoto[o.key] = base.concat(nuevos);
+      } else if (o.op === "remove") {
+        if (!base.some((x) => x && x.id === o.id)) return false;
+        // Borrar desplaza índices, así que aquí sí toca reescribir el nodo,
+        // pero solo con la nube viva y sincronizada.
+        const arr = base.filter((x) => !(x && x.id === o.id));
+        escribirNodo(o.key, arr);
+        remoto[o.key] = arr;
+      }
+      return true;
+    }
+    function encolar(o) {
+      outbox.push(o);
+      saveOutbox();
+    }
+    function enviar(o) {
+      if (!fbReady) return;                       // sin nube: solo local
+      if (!nubeFiable(o.key)) { encolar(o); return; }
+      aplicarOpEnNube(o);
+    }
+    // Al reconectar: manda los cambios pendientes uno a uno sobre datos frescos.
+    function flushOutbox() {
+      if (!outbox.length) return;
+      const quedan = [];
+      outbox.forEach((o) => {
+        if (!nubeFiable(o.key)) { quedan.push(o); return; }
+        aplicarOpEnNube(o); // si ya no aplica, se descarta
+      });
+      outbox = quedan;
+      saveOutbox();
+    }
+    // Superpone al snapshot recién llegado los cambios locales aún sin confirmar,
+    // para que no parpadeen mientras están en cola.
+    function aplicarOutbox(key, arr) {
+      let out = arr;
+      outbox.forEach((o) => {
+        if (o.key !== key) return;
+        if (o.op === "patch") {
+          out = out.map((x) => (x && x.id === o.id ? Object.assign({}, x, o.patch) : x));
+        } else if (o.op === "append") {
+          const ids = {};
+          out.forEach((x) => { if (x) ids[x.id] = true; });
+          out = out.concat(o.items.filter((x) => !ids[x.id]));
+        } else if (o.op === "remove") {
+          out = out.filter((x) => !(x && x.id === o.id));
+        }
+      });
+      return out;
+    }
+
+    function patchItem(key, id, patch) {
+      const arr = load(key);
+      const i = arr.findIndex((x) => x && x.id === id);
+      if (i === -1) return;
+      const items = arr.slice();
+      items[i] = Object.assign({}, items[i], patch);
+      guardarLocal(key, items);
+      enviar({ op: "patch", key: key, id: id, patch: patch });
+    }
+    function appendItems(key, objs) {
+      if (!objs || !objs.length) return;
+      guardarLocal(key, load(key).concat(objs));
+      enviar({ op: "append", key: key, items: objs });
+    }
+    function removeItem(key, id) {
+      guardarLocal(key, load(key).filter((x) => !(x && x.id === id)));
+      enviar({ op: "remove", key: key, id: id });
+    }
+
     function updateStatus() {
       const el = document.getElementById("status");
       const nT = cache[KEY_TOMAS].length;
       const nE = cache[KEY_EXTRA].length;
       if (db) {
-        const sync = fbReady ? "Sincronizado en la nube" : "Guardado en este dispositivo";
-        el.textContent = `✓ v92 · ${sync} · ${nT} tomas · ${nE} extracciones`;
-        el.className = "status ok";
+        const pend = outbox.length;
+        const sync = !fbReady
+          ? "Guardado en este dispositivo"
+          : fbOnline
+            ? "Sincronizado en la nube"
+            : `Sin conexión${pend ? ` · ${pend} cambio${pend === 1 ? "" : "s"} pendiente${pend === 1 ? "" : "s"}` : ""}`;
+        el.textContent = `✓ v93 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.className = fbReady && !fbOnline ? "status warn" : "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
         el.className = "status err";
@@ -3167,7 +3305,47 @@
     const eInfoBtn = document.getElementById("e-info-btn");
     const eInfoModal = document.getElementById("e-info-modal");
     const eInfoClose = document.getElementById("e-info-close");
-    eInfoBtn.addEventListener("click", () => { eInfoModal.hidden = false; });
+    const eHorasList = document.getElementById("e-horas-list");
+    function renderHorasExtra() {
+      eHorasList.innerHTML = horasExtra().map((h, i) => `<label class="horas-row">
+          <div>
+            <span>Extracción ${i + 1}</span>
+            <div class="horas-gap"></div>
+          </div>
+          <input type="time" data-n="${i}" value="${h.padStart(5, "0")}" required>
+        </label>`).join("");
+      updateHorasGaps();
+    }
+    // Tiempo entre cada extracción y la anterior; la 1ª se mide desde la
+    // última del día anterior. Lee los inputs para reflejar lo que se teclea.
+    function updateHorasGaps() {
+      const inputs = [...eHorasList.querySelectorAll('input[type="time"]')];
+      const mins = inputs.map(inp => {
+        if (!inp.value) return null;
+        const [h, m] = inp.value.split(":").map(Number);
+        return h * 60 + m;
+      });
+      inputs.forEach((inp, i) => {
+        const gapEl = inp.closest(".horas-row").querySelector(".horas-gap");
+        const cur = mins[i];
+        const prev = mins[(i + mins.length - 1) % mins.length];
+        if (cur == null || prev == null) { gapEl.textContent = ""; return; }
+        const diff = ((cur - prev) % 1440 + 1440) % 1440;
+        gapEl.textContent = formatGap(diff * 60000);
+      });
+    }
+    eHorasList.addEventListener("input", updateHorasGaps);
+    // Cada cambio se guarda al momento (y se sincroniza)
+    eHorasList.addEventListener("change", (e) => {
+      const inp = e.target.closest('input[type="time"]');
+      if (!inp || !inp.value) return;
+      const horas = horasExtra().map(h => h.padStart(5, "0"));
+      horas[Number(inp.dataset.n)] = inp.value;
+      save(KEY_EXTRA_HORAS, horas);
+      updateNextExtraction();
+      renderTareas(); // etiquetas "Extracción N · hora"
+    });
+    eInfoBtn.addEventListener("click", () => { renderHorasExtra(); eInfoModal.hidden = false; });
     eInfoClose.addEventListener("click", () => { eInfoModal.hidden = true; });
     eInfoModal.addEventListener("click", (e) => { if (e.target === eInfoModal) eInfoModal.hidden = true; });
     document.addEventListener("keydown", (e) => {
@@ -3370,42 +3548,31 @@
       });
     }
 
-    // Hora recomendada para la próxima extracción del día.
-    // 5 extracciones/día con tres horas fijas (3:00, 8:30 y 21:30); las dos
-    // intermedias se reparten equidistantes entre la última registrada hoy
-    // y las 21:30.
+    // Horario de las 4 extracciones del día, definido por la usuaria en el
+    // modal "Horario de extracciones". Devuelve horas "H:MM" (sin cero inicial).
+    function horasExtra() {
+      const guardadas = load(KEY_EXTRA_HORAS);
+      return HORAS_EXTRA_DEF.map((def, i) => {
+        const h = guardadas[i];
+        return typeof h === "string" && /^\d{1,2}:\d{2}$/.test(h) ? h.replace(/^0(\d)/, "$1") : def;
+      });
+    }
+
+    // Hora de la próxima extracción del día: la del horario que corresponde
+    // según cuántas se han registrado ya hoy.
     function updateNextExtraction() {
       const els = document.querySelectorAll(".e-next");
       if (!els.length) return;
-      const FIN = 21 * 60 + 30;    // 21:30, la última del día
-      const PRIMERA = 3 * 60;      // 3:00, la primera del día
-      const SEGUNDA = 8 * 60 + 30; // 8:30, la segunda del día
-      const TOTAL = 5;
-      const fmt = min => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
-
+      const horas = horasExtra();
       const hoy = todayStr();
-      const hoyExtras = load(KEY_EXTRA).filter(x => x.fecha === hoy);
-      const n = hoyExtras.length;
+      const n = load(KEY_EXTRA).filter(x => x.fecha === hoy).length;
 
       let text, muted = false;
-      if (n === 0) {
-        text = fmt(PRIMERA);                          // aún ninguna hoy → 3:00
-      } else if (n === 1) {
-        text = fmt(SEGUNDA);                          // hecha la primera → 8:30
-      } else if (n >= TOTAL) {
-        text = "Completadas las 5 de hoy";            // ya hechas las 5
+      if (n >= horas.length) {
+        text = `Completadas las ${horas.length} de hoy`;
         muted = true;
       } else {
-        // Hora (en minutos) de la última extracción de hoy
-        let ultima = -1;
-        for (const x of hoyExtras) {
-          const [h, m] = x.hora.split(":").map(Number);
-          ultima = Math.max(ultima, h * 60 + m);
-        }
-        const restantes = TOTAL - n;                 // incluye la de las 21:30
-        const paso = (FIN - ultima) / restantes;
-        const proxima = paso <= 0 ? FIN : Math.round(ultima + paso);
-        text = fmt(Math.min(proxima, FIN));
+        text = horas[n];
       }
       els.forEach(el => {
         el.textContent = text;
@@ -4829,7 +4996,7 @@
 
       let html = "";
       for (const x of antes) {
-        const hora = TE_HORAS[(x.extra || 0) - 1];
+        const hora = horasExtra()[(x.extra || 0) - 1];
         const src = x.extra ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>` : "";
         html += tareaRowHTML(x, KEY_TAREAS_ANTES, src, "tarea-antes");
       }
@@ -4845,15 +5012,15 @@
     // Al registrar un baño nuevo: "Recoger baño" ya, y "Bañar a Sofía" dos días después.
     // Ambas nacen con "Añadir a Hoy" activo y fijo (para la aplicación Tareas).
     function crearTareasBano(fecha) {
-      const items = load(KEY_TAREAS);
-      items.push({ id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now(), auto: true, hoy: true });
       const desde = addDays(fecha, 2); // aparece a las 0:00 de dos días después
-      items.push({
-        id: newId(), texto: "Bañar a Sofía", hecha: false,
-        creada: new Date(desde + "T00:00").getTime(),
-        desde, banoFecha: fecha, auto: true, hoy: true
-      });
-      save(KEY_TAREAS, items);
+      appendItems(KEY_TAREAS, [
+        { id: newId(), texto: "Recoger baño", hecha: false, creada: Date.now(), auto: true, hoy: true },
+        {
+          id: newId(), texto: "Bañar a Sofía", hecha: false,
+          creada: new Date(desde + "T00:00").getTime(),
+          desde, banoFecha: fecha, auto: true, hoy: true
+        }
+      ]);
       renderTareas();
     }
 
@@ -4861,9 +5028,7 @@
       e.preventDefault();
       const texto = tareaTexto.value.trim();
       if (!texto) return;
-      const items = load(KEY_TAREAS);
-      items.push({ id: newId(), texto, hecha: false, creada: Date.now() });
-      save(KEY_TAREAS, items);
+      appendItems(KEY_TAREAS, [{ id: newId(), texto, hecha: false, creada: Date.now() }]);
       closeTareaModal();
       renderTareas();
     });
@@ -4880,9 +5045,7 @@
       const key = row ? row.dataset.key : KEY_TAREAS; // clave de origen (durante / antes)
       const chk = e.target.closest('input[type="checkbox"]');
       if (chk) {
-        const items = load(key);
-        const it = items.find(x => x.id === chk.dataset.id);
-        if (it) { it.hecha = true; it.completada = Date.now(); save(key, items); }
+        patchItem(key, chk.dataset.id, { hecha: true, completada: Date.now() });
         renderTareas();
         renderCompletadas();
         return;
@@ -4890,7 +5053,7 @@
       const btn = e.target.closest(".del");
       if (!btn) return;
       if (!confirm("¿Eliminar esta tarea?")) return;
-      save(key, load(key).filter(x => x.id !== btn.dataset.id));
+      removeItem(key, btn.dataset.id);
       renderTareas();
     });
 
@@ -4898,30 +5061,39 @@
     // al principio de la lista de tareas del día. El marcador (día ya aplicado)
     // se sincroniza en la nube para no duplicarlas entre dispositivos.
     function aplicarPlantillaDia() {
+      // Este es el único escritor automático y desatendido de la app: lo dispara
+      // el temporizador de 60 s, también a medianoche y con la pestaña dormida.
+      // Si la nube no está viva y sincronizada, escribiría a partir de una caché
+      // vieja, que es justo lo que resucitaba tareas ya completadas. Mejor no
+      // hacer nada: al reconectar, el listener vuelve a llamarnos con datos buenos.
+      if (fbReady && !(nubeFiable(KEY_TAREAS) && nubeFiable(KEY_DIA_APLICADA) && nubeFiable(KEY_TAREAS_EXTRA))) return;
       const hoy = todayStr();
       if (load(KEY_DIA_APLICADA)[0] === hoy) return; // ya aplicada hoy
       save(KEY_DIA_APLICADA, [hoy]);                 // marca el día (evita repetir)
       const plantilla = load(KEY_TAREAS_EXTRA).filter(x => x.extra === 0);
       if (plantilla.length === 0) return;
-      const items = load(KEY_TAREAS);
+      // Red de seguridad por si dos dispositivos aplican la plantilla a la vez:
+      // no repetimos un texto que ya tenga copia automática de hoy.
+      const yaHoy = {};
+      load(KEY_TAREAS).forEach(x => {
+        if (x && x.auto && x.fecha === hoy) yaHoy[String(x.texto).trim()] = true;
+      });
       const base = Date.now();
       // 'creada' mayor = más arriba; conservamos el orden de la plantilla
-      plantilla.forEach((x, i) => {
-        items.push({ id: newId(), texto: x.texto, hecha: false, creada: base + i, fecha: hoy, auto: true });
-      });
-      save(KEY_TAREAS, items);
+      const nuevas = plantilla
+        .filter(x => !yaHoy[String(x.texto).trim()])
+        .map((x, i) => ({ id: newId(), texto: x.texto, hecha: false, creada: base + i, fecha: hoy, auto: true }));
+      appendItems(KEY_TAREAS, nuevas);
       renderTareas();
     }
 
     /* --- Tareas por extracción (modal) --- */
-    // Horas de referencia de las 5 extracciones del día
-    const TE_HORAS = ["3:00", "8:30", "12:50", "17:10", "21:30"];
     const teOpen = document.getElementById("te-open");
     const teModal = document.getElementById("te-modal");
     const teClose = document.getElementById("te-close");
     const teGroups = document.getElementById("te-groups");
 
-    // HTML de un grupo del modal (extra = 0 para "Durante el día"; 1–5 para extracciones).
+    // HTML de un grupo del modal (extra = 0 para "Durante el día"; 1–4 para extracciones).
     // Se muestran en el orden del array (reordenable con arrastre).
     function teHoyHTML(x) {
       return `<div class="te-flag">
@@ -4959,8 +5131,15 @@
     function renderTareasExtra() {
       const items = load(KEY_TAREAS_EXTRA);
       let html = teGroupHTML(0, "Durante el día", "", items);
-      for (let n = 1; n <= 5; n++) {
-        html += teGroupHTML(n, "Extracción " + n, TE_HORAS[n - 1], items);
+      const horas = horasExtra();
+      for (let n = 1; n <= horas.length; n++) {
+        html += teGroupHTML(n, "Extracción " + n, horas[n - 1], items);
+      }
+      // Grupos de extracciones que ya no existen (p. ej. la antigua 5ª): solo
+      // se muestran si aún tienen tareas, para poder borrarlas.
+      const sobrantes = [...new Set(items.map(x => x.extra).filter(n => n > horas.length))].sort((a, b) => a - b);
+      for (const n of sobrantes) {
+        html += teGroupHTML(n, "Extracción " + n, "ya no se usa", items);
       }
       teGroups.innerHTML = html;
     }
@@ -5064,18 +5243,16 @@
     // Se renderizan dentro de renderTareas(); este alias mantiene las llamadas existentes.
     function renderTareasAntes() { renderTareas(); }
 
-    // Copia las tareas plantilla de la extracción nº n (1–5). Se acumulan:
+    // Copia las tareas plantilla de la extracción nº n (1–4). Se acumulan:
     // no se borran las de extracciones anteriores.
     function agregarTareasAntes(n) {
-      if (!(n >= 1 && n <= 5)) return;
+      if (!(n >= 1 && n <= HORAS_EXTRA_DEF.length)) return;
       const plantilla = load(KEY_TAREAS_EXTRA).filter(x => x.extra === n);
       if (plantilla.length === 0) return;
-      const items = load(KEY_TAREAS_ANTES);
       const base = Date.now();
-      plantilla.forEach((x, i) => {
-        items.push({ id: newId(), texto: x.texto, extra: n, hecha: false, creada: base + i });
-      });
-      save(KEY_TAREAS_ANTES, items);
+      appendItems(KEY_TAREAS_ANTES, plantilla.map((x, i) => (
+        { id: newId(), texto: x.texto, extra: n, hecha: false, creada: base + i }
+      )));
     }
 
     /* --- Tareas completadas (acumuladas de ambas listas) --- */
@@ -5106,7 +5283,7 @@
       for (const x of items) {
         let src = "";
         if (x._key === KEY_TAREAS_ANTES) {
-          const hora = TE_HORAS[(x.extra || 0) - 1];
+          const hora = horasExtra()[(x.extra || 0) - 1];
           src = x.extra ? `<span class="tarea-src">Extracción ${x.extra}${hora ? " · " + hora : ""}</span>` : "";
         } else if (x.banoFecha) {
           src = `<span class="tarea-src">${formatDayMes(x.banoFecha)}</span>`;
@@ -5132,9 +5309,7 @@
       const chk = e.target.closest('input[type="checkbox"]');
       if (chk) {
         const key = chk.dataset.key;
-        const items = load(key);
-        const it = items.find(x => x.id === chk.dataset.id);
-        if (it) { it.hecha = false; it.completada = null; save(key, items); }
+        patchItem(key, chk.dataset.id, { hecha: false, completada: null });
         renderCompletadas();
         if (key === KEY_TAREAS) renderTareas(); else renderTareasAntes();
         return;
@@ -5143,7 +5318,7 @@
       if (!btn) return;
       if (!confirm("¿Eliminar esta tarea?")) return;
       const key = btn.dataset.key;
-      save(key, load(key).filter(x => x.id !== btn.dataset.id));
+      removeItem(key, btn.dataset.id);
       renderCompletadas();
     });
 
@@ -5306,6 +5481,10 @@
           cache[key] = Array.isArray(val) ? val : [];
         }
 
+        // Cambios que quedaron sin subir en una sesión anterior (sin conexión)
+        const guardada = await idbGet(KEY_OUTBOX);
+        outbox = Array.isArray(guardada) ? guardada : [];
+
         // Migración del sueño: del modelo antiguo {fecha,inicio,fin}
         // al nuevo {fechaInicio,inicio,fechaFin,fin}
         for (const key of [KEY_SUENO_C, KEY_SUENO_F]) {
@@ -5396,6 +5575,13 @@
        dispositivo ya tiene datos, los subimos para no perderlos. */
     function startFirebaseSync() {
       fbReady = true;
+      // Estado real de la conexión. Sin esto, `fbReady` decía "sincronizado"
+      // aunque el websocket llevara horas caído, y se escribía sobre datos viejos.
+      fdb.ref(".info/connected").on("value", (snap) => {
+        fbOnline = !!snap.val();
+        if (fbOnline) flushOutbox(); // sube lo que quedó pendiente, tarea a tarea
+        updateStatus();
+      });
       const sincronizadas = new Set(); // claves que ya recibieron su primer valor de la nube
       ALL_KEYS.forEach((key) => {
         let first = true;
@@ -5409,8 +5595,13 @@
             return;
           }
           first = false;
-          cache[key] = remote;
-          if (db) idbSet(key, remote).catch(() => {}); // mantiene el respaldo local al día
+          remoto[key] = remote;   // lo que hay en la nube, tal cual
+          fbSynced[key] = true;
+          // Encima, los cambios locales que aún no han podido subir, para que no
+          // parpadeen mientras esperan a la reconexión.
+          cache[key] = aplicarOutbox(key, remote);
+          if (db) idbSet(key, cache[key]).catch(() => {}); // mantiene el respaldo local al día
+          flushOutbox();
           // Cuando toda la nube ha sincronizado por primera vez, aplica (una vez
           // por día) la plantilla de "Durante el día" con datos ya fiables.
           sincronizadas.add(key);
