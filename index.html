@@ -1323,13 +1323,12 @@
     .completadas-chevron { color: var(--muted); font-size: 0.9rem; transition: transform 0.15s; }
     .completadas-head[aria-expanded="true"] .completadas-chevron { transform: rotate(180deg); }
     #completadas-body { margin-top: 14px; }
+    #dd-diag-body { margin-top: 14px; }
     #completadas-list { max-height: 340px; overflow-y: auto; }
 
     /* ---------- Dolencias ---------- */
     .dolencia { cursor: pointer; }
     .dolencia:hover { border-color: var(--primary); }
-    .dolencia.resuelta { background: #f6f5fb; }
-    .dolencia.resuelta .tarea-txt { color: var(--muted); font-weight: 400; }
     .estado-pill {
       flex: none;
       padding: 4px 10px;
@@ -1340,6 +1339,15 @@
     }
     .estado-pill.en-curso { background: rgba(232, 150, 60, 0.15); color: #b8691c; }
     .estado-pill.resuelta { background: rgba(59, 184, 154, 0.15); color: #2f8f6e; }
+    .dt-sin-hora { margin: -4px 0 14px; }
+    .dt-sin-hora input[type="checkbox"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    #dt-hora:disabled { opacity: 0.45; cursor: not-allowed; }
+    .segmented input[value="puntual"]:checked + label,
+    .segmented input[value="intervalo"]:checked + label {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
     .segmented input[value="en-curso"]:checked + label {
       background: #e8963c;
       border-color: #e8963c;
@@ -1356,7 +1364,7 @@
       background: none;
       border: none;
       padding: 0;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
       color: var(--primary-dark);
       font: inherit;
       font-size: 0.9rem;
@@ -1388,6 +1396,84 @@
     }
     .dd-diag-status { font-size: 0.78rem; color: var(--muted); margin-top: 6px; min-height: 1em; }
     .dd-notas { display: block; font-size: 0.85rem; font-weight: 400; color: var(--text); margin-top: 4px; white-space: pre-wrap; }
+    .card-section-title {
+      margin: 18px 0 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .list-head + .card-section-title { margin-top: 4px; }
+    .tarea-src.cita-fecha { margin: 0 0 2px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chips.chips-top { margin: 0 0 6px; }
+    .chip {
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(124, 108, 224, 0.12);
+      color: var(--primary-dark);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    /* stretch: el filtro toma la altura de "+ Nueva entrada" */
+    .tl-acciones { display: flex; align-items: stretch; gap: 8px; }
+    .tl-filtro-wrap { position: relative; display: flex; }
+    .tl-filtro-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fbfaff;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .tl-filtro-btn:hover { border-color: var(--primary); }
+    .tl-filtro-btn.filtrado { border-color: var(--primary); color: var(--primary-dark); background: #f3f1fb; }
+    .tl-filtro-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 20;
+      min-width: 170px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 8px 24px rgba(40, 30, 80, 0.15);
+    }
+    .tl-filtro {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: none;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+    .tl-filtro:hover { background: #f3f1fb; }
+    .tl-filtro.active { color: var(--primary-dark); background: rgba(124, 108, 224, 0.12); }
+    .chip.chip-evol { background: rgba(214, 84, 140, 0.14); color: #b03a6f; }
+    .chip.chip-med { background: rgba(66, 133, 214, 0.14); color: #2f6bb3; }
+    /* El título de la dolencia va pegado a su línea de periodo y estado */
+    #panel-dolencia .toolbar.toolbar-split { margin-bottom: 4px; }
+    .dd-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; }
+    .dd-periodo { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+    /* El título de la cita va pegado a su línea de fecha y edad */
+    #panel-cita .toolbar.toolbar-split { margin-bottom: 4px; }
+    .cv-fecha { margin: 0 0 20px; font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+    .cv-edad { color: var(--primary); }
     .estado-pill.proxima { background: rgba(124, 108, 224, 0.15); color: var(--primary-dark); }
 
     /* Pestañas de navegación ocultas desde Ajustes */
@@ -1506,7 +1592,7 @@
         <button class="tab" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
         <button class="tab" data-panel="panales"><span class="ico">🧷</span> Pañales</button>
         <button class="tab" data-panel="bano"><span class="ico">🛁</span> Baño</button>
-        <button class="tab" data-panel="dolencias"><span class="ico">🤒</span> Dolencias</button>
+        <button class="tab" data-panel="dolencias"><span class="ico">🩺</span> Historial</button>
         <div class="nav-group-label" data-nav-group="mama">Mamá</div>
         <button class="tab" data-panel="extracciones"><span class="ico">💧</span> Extracciones</button>
         <button class="tab" data-panel="sueno"><span class="ico">😴</span> Sueño</button>
@@ -1872,120 +1958,287 @@
     <!-- ===================== DOLENCIAS ===================== -->
     <section class="panel" id="panel-dolencias">
       <div class="toolbar toolbar-split">
-        <h2 class="panel-title">🤒 Dolencias</h2>
+        <h2 class="panel-title">🩺 Historial médico</h2>
       </div>
 
-      <div class="card">
-        <div class="list-head">
-          <h2>En curso</h2>
-          <button type="button" class="primary" id="do-new">+ Nueva dolencia</button>
-        </div>
-        <div id="do-list"></div>
+      <div class="subtabs">
+        <button class="subtab active" data-sub="hm-dolencias">Dolencias</button>
+        <button class="subtab" data-sub="hm-citas">Citas</button>
+        <button class="subtab" data-sub="hm-medicacion">Medicación</button>
       </div>
 
-      <div class="card">
-        <div class="list-head">
-          <h2>Resueltas</h2>
+      <div class="subpanel" id="sub-hm-citas">
+        <div class="card">
+          <div class="list-head">
+            <h2>Citas médicas</h2>
+            <button type="button" class="primary" id="ci-new">+ Nueva cita</button>
+          </div>
+          <div id="hm-citas-list"></div>
         </div>
-        <div id="do-list-resueltas"></div>
+      </div>
+
+      <div class="subpanel active" id="sub-hm-dolencias">
+        <div class="card">
+          <div class="list-head">
+            <h2>Dolencias</h2>
+            <button type="button" class="primary" id="do-new">+ Nueva dolencia</button>
+          </div>
+          <h3 class="card-section-title">En curso</h3>
+          <div id="do-list"></div>
+          <h3 class="card-section-title">Resueltas</h3>
+          <div id="do-list-resueltas"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" id="sub-hm-medicacion">
+        <div class="card">
+          <div class="list-head">
+            <h2>Medicación</h2>
+            <button type="button" class="primary" id="hm-med-new">+ Nueva medicación</button>
+          </div>
+          <div id="hm-med-list"></div>
+        </div>
       </div>
     </section>
 
     <!-- ===================== DETALLE DE UNA DOLENCIA ===================== -->
     <section class="panel" id="panel-dolencia">
-      <button type="button" class="back-link" id="dd-back">← Dolencias</button>
+      <button type="button" class="back-link" id="dd-back">← Historial médico</button>
       <div class="toolbar toolbar-split">
         <div class="dd-head">
           <h2 class="panel-title" id="dd-nombre">Dolencia</h2>
-          <span class="estado-pill" id="dd-estado"></span>
         </div>
         <button type="button" class="info-btn" id="dd-edit" title="Editar dolencia" aria-label="Editar dolencia">✏️</button>
       </div>
+      <div class="dd-meta">
+        <span class="dd-periodo" id="dd-periodo" hidden></span>
+        <span class="estado-pill" id="dd-estado"></span>
+      </div>
 
       <div class="card">
-        <h2>Diagnóstico</h2>
-        <textarea id="dd-diag" maxlength="2000" placeholder="Breve descripción de la dolencia"></textarea>
-        <div class="dd-diag-status" id="dd-diag-status"></div>
+        <button type="button" class="completadas-head" id="dd-diag-toggle" aria-expanded="false" aria-controls="dd-diag-body">
+          <h2>Diagnóstico</h2>
+          <span class="completadas-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div id="dd-diag-body" hidden>
+          <textarea id="dd-diag" maxlength="2000" placeholder="Breve descripción de la dolencia"></textarea>
+          <div class="dd-diag-status" id="dd-diag-status"></div>
+        </div>
       </div>
 
       <div class="card">
         <div class="list-head">
-          <h2>Citas médicas</h2>
-          <button type="button" class="primary" id="dc-new">+ Nueva cita</button>
+          <h2>Timeline</h2>
+          <div class="tl-acciones">
+            <div class="tl-filtro-wrap">
+              <button type="button" class="tl-filtro-btn" id="tl-filtro-btn" aria-haspopup="true" aria-expanded="false">
+                <span id="tl-filtro-lbl">Todo</span> <span aria-hidden="true">▾</span>
+              </button>
+              <div class="tl-filtro-menu" id="tl-filtros" role="menu" hidden>
+                <button type="button" class="tl-filtro active" role="menuitemradio" aria-checked="true" data-filtro="">Todo</button>
+                <button type="button" class="tl-filtro" role="menuitemradio" aria-checked="false" data-filtro="cita">📅 Citas</button>
+                <button type="button" class="tl-filtro" role="menuitemradio" aria-checked="false" data-filtro="med">💊 Medicación</button>
+                <button type="button" class="tl-filtro" role="menuitemradio" aria-checked="false" data-filtro="evol">📈 Evolución</button>
+              </div>
+            </div>
+            <button type="button" class="primary" id="tl-new">+ Nueva entrada</button>
+          </div>
         </div>
-        <div id="dc-list"></div>
+        <div id="dd-timeline"></div>
       </div>
 
-      <div class="card">
-        <div class="list-head">
-          <h2>Medicación</h2>
-          <button type="button" class="primary" id="dt-new">+ Nuevo medicamento</button>
+      <!-- Modal: elegir qué crear desde el Timeline -->
+      <div class="modal-overlay" id="tl-modal" hidden>
+        <div class="modal-box card fab-choices-box">
+          <h2>Nueva entrada</h2>
+          <div class="fab-choices">
+            <button type="button" class="fab-choice" data-tl="cita"><span class="fab-choice-ico">📅</span><span>Cita</span></button>
+            <button type="button" class="fab-choice" data-tl="evol"><span class="fab-choice-ico">📈</span><span>Evolución</span></button>
+            <button type="button" class="fab-choice" data-tl="med"><span class="fab-choice-ico">💊</span><span>Medicación</span></button>
+          </div>
+          <button type="button" class="secondary" id="tl-cancel">Cancelar</button>
         </div>
-        <div id="dt-list"></div>
       </div>
 
-      <!-- Modal: cita médica -->
-      <div class="modal-overlay" id="dc-modal" hidden>
+      <!-- Modal: entrada de evolución -->
+      <div class="modal-overlay" id="de-modal" hidden>
         <div class="modal-box card">
-          <h2 id="dc-titulo">Nueva cita</h2>
-          <form id="dc-form">
-            <div class="field">
-              <label for="dc-fecha">Fecha</label>
-              <input type="date" id="dc-fecha" required>
+          <h2 id="de-titulo">Nueva entrada</h2>
+          <form id="de-form">
+            <div class="row">
+              <div class="field">
+                <label for="de-inicio">Fecha de inicio</label>
+                <input type="date" id="de-inicio" required>
+              </div>
+              <div class="field">
+                <label for="de-fin">Fecha de fin</label>
+                <input type="date" id="de-fin">
+              </div>
             </div>
             <div class="field">
-              <label for="dc-lugar">Médico / centro</label>
-              <input type="text" id="dc-lugar" placeholder="Ej. Pediatra, centro de salud" maxlength="200" autocomplete="off" required>
-            </div>
-            <div class="field">
-              <label for="dc-notas">Notas</label>
-              <textarea id="dc-notas" maxlength="2000" placeholder="Motivo, indicaciones…"></textarea>
+              <label for="de-texto">Descripción</label>
+              <textarea id="de-texto" maxlength="2000" placeholder="Cómo ha evolucionado…"></textarea>
             </div>
             <div class="form-actions">
-              <button type="submit" class="primary" id="dc-submit">Guardar</button>
-              <button type="button" class="secondary" id="dc-cancel">Cancelar</button>
+              <button type="submit" class="primary" id="de-submit">Guardar</button>
+              <button type="button" class="secondary" id="de-cancel">Cancelar</button>
             </div>
-            <button type="button" class="btn-danger" id="dc-delete" hidden>Eliminar</button>
+            <button type="button" class="btn-danger" id="de-delete" hidden>Eliminar</button>
           </form>
         </div>
       </div>
 
-      <!-- Modal: medicamento administrado -->
-      <div class="modal-overlay" id="dt-modal" hidden>
+    </section>
+
+    <!-- ===================== DETALLE DE UNA CITA ===================== -->
+    <section class="panel" id="panel-cita">
+      <button type="button" class="back-link" id="cv-back">← Historial médico</button>
+      <div class="toolbar toolbar-split">
+        <div class="dd-head">
+          <h2 class="panel-title" id="cv-nombre">Cita</h2>
+        </div>
+        <button type="button" class="info-btn" id="cv-edit" title="Editar cita" aria-label="Editar cita">✏️</button>
+      </div>
+      <div class="cv-fecha" id="cv-fecha"></div>
+
+      <div class="card">
+        <h2>Descripción general</h2>
+        <textarea id="cv-general" maxlength="2000" placeholder="Resumen de la cita"></textarea>
+        <div class="dd-diag-status" id="cv-general-status"></div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Dolencias</h2>
+          <button type="button" class="primary" id="cd-new">+ Añadir dolencia</button>
+        </div>
+        <div id="cd-list"></div>
+      </div>
+
+      <!-- Modal: descripción de la cita (asociada a una dolencia) -->
+      <div class="modal-overlay" id="cd-modal" hidden>
         <div class="modal-box card">
-          <h2 id="dt-titulo">Nuevo medicamento</h2>
-          <form id="dt-form">
+          <h2 id="cd-titulo">Nueva descripción</h2>
+          <form id="cd-form">
             <div class="field">
-              <label for="dt-medicamento">Medicamento</label>
-              <input type="text" id="dt-medicamento" placeholder="Ej. Apiretal" maxlength="200" autocomplete="off" required>
+              <label for="cd-dolencia">Dolencia</label>
+              <select id="cd-dolencia" class="form-select"></select>
             </div>
             <div class="field">
-              <label for="dt-dosis">Dosis</label>
-              <input type="text" id="dt-dosis" placeholder="Ej. 2,5 ml" maxlength="100" autocomplete="off">
+              <label for="cd-texto">Descripción</label>
+              <textarea id="cd-texto" maxlength="2000" placeholder="Qué se dijo sobre esta dolencia…" required></textarea>
             </div>
+            <div class="form-actions">
+              <button type="submit" class="primary" id="cd-submit">Guardar</button>
+              <button type="button" class="secondary" id="cd-cancel">Cancelar</button>
+            </div>
+            <button type="button" class="btn-danger" id="cd-delete" hidden>Eliminar</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal: medicamento administrado (fuera de los paneles: se abre desde una dolencia y desde Historial › Medicación) -->
+    <div class="modal-overlay" id="dt-modal" hidden>
+      <div class="modal-box card">
+        <h2 id="dt-titulo">Nuevo medicamento</h2>
+        <form id="dt-form">
+          <div class="field" id="dt-dolencia-field" hidden>
+            <label for="dt-dolencia">Dolencia</label>
+            <select id="dt-dolencia" class="form-select"></select>
+          </div>
+          <div class="field">
+            <label for="dt-medicamento">Medicamento</label>
+            <input type="text" id="dt-medicamento" placeholder="Ej. Apiretal" maxlength="200" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label for="dt-dosis">Dosis</label>
+            <input type="text" id="dt-dosis" placeholder="Ej. 2,5 ml" maxlength="100" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Posología</label>
+            <div class="segmented">
+              <input type="radio" name="dt-posologia" id="dt-pos-puntual" value="puntual">
+              <label for="dt-pos-puntual">Puntual</label>
+              <input type="radio" name="dt-posologia" id="dt-pos-intervalo" value="intervalo">
+              <label for="dt-pos-intervalo">Intervalo</label>
+            </div>
+          </div>
+          <!-- Puntual: fecha y hora (obligatorias, salvo que se marque "Sin hora") -->
+          <div id="dt-puntual">
             <div class="row">
               <div class="field">
                 <label for="dt-fecha">Fecha</label>
-                <input type="date" id="dt-fecha" required>
+                <input type="date" id="dt-fecha">
               </div>
               <div class="field">
                 <label for="dt-hora">Hora</label>
                 <input type="time" id="dt-hora">
               </div>
             </div>
+            <div class="te-flag dt-sin-hora">
+              <label class="te-flag-lbl">
+                <input type="checkbox" id="dt-sin-hora">
+                <span class="te-switch"></span>
+                <span>Sin hora</span>
+              </label>
+            </div>
+          </div>
+          <!-- Intervalo: inicio (obligatorio), fin (opcional) y frecuencia -->
+          <div id="dt-intervalo" hidden>
+            <div class="row">
+              <div class="field">
+                <label for="dt-inicio">Fecha de inicio</label>
+                <input type="date" id="dt-inicio">
+              </div>
+              <div class="field">
+                <label for="dt-fin">Fecha de fin</label>
+                <input type="date" id="dt-fin">
+              </div>
+            </div>
             <div class="field">
-              <label for="dt-notas">Notas</label>
-              <textarea id="dt-notas" maxlength="2000" placeholder="Observaciones…"></textarea>
+              <label for="dt-frecuencia">Frecuencia</label>
+              <input type="text" id="dt-frecuencia" placeholder="Ej. cada 8 horas" maxlength="100" autocomplete="off">
             </div>
-            <div class="form-actions">
-              <button type="submit" class="primary" id="dt-submit">Guardar</button>
-              <button type="button" class="secondary" id="dt-cancel">Cancelar</button>
-            </div>
-            <button type="button" class="btn-danger" id="dt-delete" hidden>Eliminar</button>
-          </form>
-        </div>
+          </div>
+          <div class="field">
+            <label for="dt-notas">Notas</label>
+            <textarea id="dt-notas" maxlength="2000" placeholder="Observaciones…"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary" id="dt-submit">Guardar</button>
+            <button type="button" class="secondary" id="dt-cancel">Cancelar</button>
+          </div>
+          <button type="button" class="btn-danger" id="dt-delete" hidden>Eliminar</button>
+        </form>
       </div>
-    </section>
+    </div>
+
+    <!-- Modal: crear/editar cita (fuera de los paneles: se abre desde Citas, desde una dolencia y desde el detalle de la cita) -->
+    <div class="modal-overlay" id="ci-modal" hidden>
+      <div class="modal-box card">
+        <h2 id="ci-titulo">Nueva cita</h2>
+        <form id="ci-form">
+          <div class="field">
+            <label for="ci-texto">Título</label>
+            <input type="text" id="ci-texto" placeholder="Ej. Revisión pediatra" maxlength="200" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label for="ci-fecha">Fecha</label>
+            <input type="date" id="ci-fecha" required>
+          </div>
+          <div class="field" id="ci-desc-field" hidden>
+            <label for="ci-desc" id="ci-desc-label">Descripción</label>
+            <textarea id="ci-desc" maxlength="2000" placeholder="Qué se dijo sobre esta dolencia…"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary" id="ci-submit">Guardar</button>
+            <button type="button" class="secondary" id="ci-cancel">Cancelar</button>
+          </div>
+          <button type="button" class="btn-danger" id="ci-delete" hidden>Eliminar</button>
+        </form>
+      </div>
+    </div>
 
     <!-- Modal: crear/editar dolencia (fuera de los paneles: se abre desde la lista y desde el detalle) -->
     <div class="modal-overlay" id="do-modal" hidden>
@@ -2377,8 +2630,10 @@
     const KEY_HIERRO = "hierro-mama";
     const KEY_BANO = "bano-bebe";
     const KEY_DOLENCIAS = "dolencias-bebe";
-    const KEY_DOL_CITAS = "dolencias-citas";       // citas médicas (cada una con dolenciaId)
+    const KEY_DOL_CITAS = "dolencias-citas";       // citas médicas: {id, titulo, fecha, general}
+    const KEY_CITA_DESC = "citas-descripciones";   // descripciones de una cita: {id, citaId, dolenciaId?, texto}
     const KEY_DOL_TRAT = "dolencias-tratamiento";  // medicamentos administrados (cada uno con dolenciaId)
+    const KEY_DOL_EVOL = "dolencias-evolucion";    // evolución: {id, dolenciaId, inicio, fin?, texto?}
     const KEY_TAREAS = "tareas-mama";
     const KEY_TAREAS_EXTRA = "tareas-extraccion";
     const KEY_TAREAS_ANTES = "tareas-antes-extraccion";
@@ -2387,7 +2642,7 @@
     const KEY_NAV_VIS = "nav-ocultas"; // pestañas de navegación ocultas (array de nombres de panel)
     const KEY_EXTRA_HORAS = "extracciones-horario"; // horas ("HH:MM") de las 4 extracciones del día
     const HORAS_EXTRA_DEF = ["3:00", "8:30", "15:00", "21:30"]; // horario por defecto
-    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_DOLENCIAS, KEY_DOL_CITAS, KEY_DOL_TRAT, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS, KEY_EXTRA_HORAS];
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_DOLENCIAS, KEY_DOL_CITAS, KEY_CITA_DESC, KEY_DOL_TRAT, KEY_DOL_EVOL, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS, KEY_EXTRA_HORAS];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
     /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
@@ -2410,7 +2665,7 @@
        índice. Sin ellas, el cambio va a la cola en vez de a Firebase: subir el
        array entero desde una caché vieja resucitaba tareas ya completadas. */
     function nubeFiable(key) { return fbReady && fbOnline && !!fbSynced[key]; }
-    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_DOLENCIAS]: [], [KEY_DOL_CITAS]: [], [KEY_DOL_TRAT]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [], [KEY_EXTRA_HORAS]: [] };
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_DOLENCIAS]: [], [KEY_DOL_CITAS]: [], [KEY_CITA_DESC]: [], [KEY_DOL_TRAT]: [], [KEY_DOL_EVOL]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [], [KEY_EXTRA_HORAS]: [] };
 
     function openDB() {
       return new Promise((resolve, reject) => {
@@ -2587,7 +2842,7 @@
           : fbOnline
             ? "Sincronizado en la nube"
             : `Sin conexión${pend ? ` · ${pend} cambio${pend === 1 ? "" : "s"} pendiente${pend === 1 ? "" : "s"}` : ""}`;
-        el.textContent = `✓ v95 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v96 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = fbReady && !fbOnline ? "status warn" : "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -2747,7 +3002,7 @@
 
     /* ---------- Pestañas ---------- */
     // Paneles sin botón propio en la navegación: se marca el de su pestaña madre
-    const TAB_DE_PANEL = { dolencia: "dolencias" };
+    const TAB_DE_PANEL = { dolencia: "dolencias", cita: "dolencias" };
     function activateTab(panel) {
       // Si la pestaña está oculta, cae en Resumen
       if (panel !== "home" && esPanelOculto(TAB_DE_PANEL[panel] || panel)) panel = "home";
@@ -2813,7 +3068,7 @@
         { panel: "tomas", ico: "🍼", label: "Tomas" },
         { panel: "panales", ico: "🧷", label: "Pañales" },
         { panel: "bano", ico: "🛁", label: "Baño" },
-        { panel: "dolencias", ico: "🤒", label: "Dolencias" }
+        { panel: "dolencias", ico: "🩺", label: "Historial" }
       ] },
       mama: { title: "Mamá", items: [
         { panel: "extracciones", ico: "💧", label: "Extracciones" },
@@ -2830,7 +3085,7 @@
     // A qué botón de la barra corresponde cada panel
     const PANEL_SECTION = {
       home: "home",
-      tomas: "bebe", panales: "bebe", bano: "bebe", dolencias: "bebe", dolencia: "bebe",
+      tomas: "bebe", panales: "bebe", bano: "bebe", dolencias: "bebe", dolencia: "bebe", cita: "bebe",
       extracciones: "mama", sueno: "mama", paracetamol: "mama", postparto: "mama", hierro: "mama", tareas: "mama"
     };
 
@@ -3075,33 +3330,31 @@
 
     // Edad de la niña en meses y días (nació el 21 de junio de 2026)
     const FECHA_NACIMIENTO = "2026-06-21";
-    function updateEdad() {
-      const el = document.getElementById("edad-value");
-      const sub = document.getElementById("edad-semanas");
-      if (!el) return;
+    // Edad de la niña en una fecha dada (Date), en formato "1 mes 1 semana 1 día":
+    // las semanas salen de los días sobrantes tras los meses completos.
+    // Devuelve null si la fecha es anterior al nacimiento.
+    function edadEn(fecha) {
       const nac = new Date(FECHA_NACIMIENTO + "T00:00");
-      const hoy = new Date();
-      let meses = (hoy.getFullYear() - nac.getFullYear()) * 12 + (hoy.getMonth() - nac.getMonth());
-      let dias = hoy.getDate() - nac.getDate();
+      let meses = (fecha.getFullYear() - nac.getFullYear()) * 12 + (fecha.getMonth() - nac.getMonth());
+      let dias = fecha.getDate() - nac.getDate();
       if (dias < 0) {
         meses -= 1;
-        dias += new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate(); // días del mes anterior
+        dias += new Date(fecha.getFullYear(), fecha.getMonth(), 0).getDate(); // días del mes anterior
       }
-      if (meses < 0) { // aún no ha nacido / fecha futura
-        el.textContent = "—";
-        if (sub) sub.textContent = "";
-        return;
-      }
-
-      // Formato "1 mes 1 semana 1 día": las semanas salen de los días
-      // sobrantes tras los meses completos.
+      if (meses < 0) return null;
       const semanas = Math.floor(dias / 7);
       const rDias = dias % 7;
       const parts = [];
       if (meses) parts.push(`${meses} ${meses === 1 ? "mes" : "meses"}`);
       if (semanas) parts.push(`${semanas} ${semanas === 1 ? "semana" : "semanas"}`);
       if (rDias || parts.length === 0) parts.push(`${rDias} ${rDias === 1 ? "día" : "días"}`);
-      el.textContent = parts.join(" ");
+      return parts.join(" ");
+    }
+    function updateEdad() {
+      const el = document.getElementById("edad-value");
+      const sub = document.getElementById("edad-semanas");
+      if (!el) return;
+      el.textContent = edadEn(new Date()) || "—"; // "—": aún no ha nacido / fecha futura
       if (sub) sub.textContent = "";
     }
 
@@ -4406,18 +4659,55 @@
 
     let dolenciaActualId = null; // dolencia abierta en la vista de detalle
 
+    // Periodo de una dolencia, calculado a partir de su timeline: la fecha más
+    // antigua y la más reciente de sus citas, medicación y evolución (inicio y fin).
+    // Devuelve { inicio, fin } en "YYYY-MM-DD", o null si no tiene nada.
+    function rangoDolencia(id) {
+      const fechas = [];
+      load(KEY_DOL_CITAS).forEach(c => {
+        if (c && c.fecha && descripcionesDeCita(c).some(x => x.dolenciaId === id)) fechas.push(c.fecha);
+      });
+      load(KEY_DOL_TRAT).forEach(t => {
+        if (!t || t.dolenciaId !== id) return;
+        if (t.posologia === "intervalo") {
+          if (t.inicio) fechas.push(t.inicio);
+          if (t.fin) fechas.push(t.fin);
+        } else if (t.fecha) fechas.push(t.fecha);
+      });
+      load(KEY_DOL_EVOL).forEach(x => {
+        if (!x || x.dolenciaId !== id) return;
+        if (x.inicio) fechas.push(x.inicio);
+        if (x.fin) fechas.push(x.fin);
+      });
+      if (!fechas.length) return null;
+      fechas.sort();
+      return { inicio: fechas[0], fin: fechas[fechas.length - 1] };
+    }
+    // "Jun 2026", "Jun - Ago 2026" o "Nov 2025 - Feb 2026"
+    function rangoTxt(r) {
+      const [y1, m1] = r.inicio.split("-").map(Number);
+      const [y2, m2] = r.fin.split("-").map(Number);
+      if (y1 === y2 && m1 === m2) return `${MESES_3[m1 - 1]} ${y1}`;
+      if (y1 === y2) return `${MESES_3[m1 - 1]} - ${MESES_3[m2 - 1]} ${y1}`;
+      return `${MESES_3[m1 - 1]} ${y1} - ${MESES_3[m2 - 1]} ${y2}`;
+    }
+
     function dolenciaRowHTML(x) {
-      const resuelta = x.estado === "resuelta";
-      return `<div class="tarea dolencia${resuelta ? " resuelta" : ""}" data-id="${x.id}" role="button" tabindex="0">
-        <div class="tarea-txt">${escapeHtml(x.titulo)}</div>
-        <span class="estado-pill ${resuelta ? "resuelta" : "en-curso"}">${resuelta ? "Resuelta" : "En curso"}</span>
+      return `<div class="tarea dolencia" data-id="${x.id}" role="button" tabindex="0">
+        <div class="tarea-txt">
+          ${x.rango ? `<span class="tarea-src cita-fecha">${rangoTxt(x.rango)}</span>` : ""}
+          ${escapeHtml(x.titulo)}
+        </div>
       </div>`;
     }
 
     function renderDolencias() {
-      // Más recientes primero
-      const items = load(KEY_DOLENCIAS).filter(Boolean).slice()
-        .sort((a, b) => (b.creada || 0) - (a.creada || 0));
+      // Por fecha de inicio (calculada del timeline), las más recientes primero;
+      // las que aún no tienen nada en el timeline, al final. A igualdad, las
+      // creadas más tarde primero.
+      const items = load(KEY_DOLENCIAS).filter(Boolean)
+        .map(x => Object.assign({}, x, { rango: rangoDolencia(x.id) }))
+        .sort((a, b) => (b.rango ? b.rango.inicio : "").localeCompare(a.rango ? a.rango.inicio : "") || (b.creada || 0) - (a.creada || 0));
       const enCurso = items.filter(x => x.estado !== "resuelta");
       const resueltas = items.filter(x => x.estado === "resuelta");
       doList.innerHTML = enCurso.length
@@ -4426,8 +4716,81 @@
       doListResueltas.innerHTML = resueltas.length
         ? resueltas.map(dolenciaRowHTML).join("")
         : '<div class="empty">Aún no hay dolencias resueltas.</div>';
+      renderCitasTodas();
+      renderMedicacionTodas();
       renderDolenciaDetalle();
+      renderCitaDetalle();
     }
+
+    /* ---------- Citas ----------
+       Una cita tiene título, fecha y descripción general, y varias
+       descripciones (lista aparte), cada una asociable a una dolencia.
+       Las citas antiguas guardaban `dolenciaId`/`lugar`/`notas` en la propia
+       cita: se leen como si tuvieran una descripción, y se convierten al
+       formato nuevo la primera vez que se abre su detalle. */
+    function citaTitulo(c) { return c.titulo || c.lugar || "Cita"; }
+    function porFechaAsc(a, b) {
+      return (a.fecha || "").localeCompare(b.fecha || "") || (a.creada || 0) - (b.creada || 0);
+    }
+    function descripcionesDeCita(c) {
+      const out = load(KEY_CITA_DESC).filter(x => x && x.citaId === c.id)
+        .sort((a, b) => (a.creada || 0) - (b.creada || 0));
+      if (c.dolenciaId) out.unshift({ id: "legacy-" + c.id, citaId: c.id, dolenciaId: c.dolenciaId, texto: c.notas || "", legacy: true });
+      return out;
+    }
+    // Enlaza una fila de lista (clic o Enter/Espacio) con una acción
+    function filasClicables(list, fn) {
+      list.addEventListener("click", (e) => {
+        const row = e.target.closest(".dolencia");
+        if (row) fn(row);
+      });
+      list.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        const row = e.target.closest(".dolencia");
+        if (!row) return;
+        e.preventDefault();
+        fn(row);
+      });
+    }
+
+    // Pestaña "Citas": fecha y título.
+    // Primero las más próximas: las de hoy en adelante de la más cercana a la
+    // más lejana, y después las pasadas de la más reciente a la más antigua.
+    const hmCitasList = document.getElementById("hm-citas-list");
+    function renderCitasTodas() {
+      const hoy = todayStr();
+      const todas = load(KEY_DOL_CITAS).filter(Boolean);
+      const futuras = todas.filter(c => (c.fecha || "") >= hoy).sort(porFechaAsc);
+      const pasadas = todas.filter(c => (c.fecha || "") < hoy).sort((a, b) => porFechaAsc(b, a));
+      const citas = futuras.concat(pasadas);
+      hmCitasList.innerHTML = citas.length ? citas.map(c => `<div class="tarea dolencia" data-id="${c.id}" role="button" tabindex="0">
+          <div class="tarea-txt">
+            <span class="tarea-src cita-fecha">${fechaHoraTxt(c.fecha)}</span>
+            ${escapeHtml(citaTitulo(c))}
+          </div>
+        </div>`).join("") : '<div class="empty">No hay citas registradas.</div>';
+    }
+    filasClicables(hmCitasList, (row) => abrirCita(row.dataset.id));
+
+    // Pestaña "Medicación": toda la medicación de todas las dolencias,
+    // fecha (y hora) y medicamento, las más recientes primero.
+    // Clic → su ventana de edición.
+    const hmMedList = document.getElementById("hm-med-list");
+    function renderMedicacionTodas() {
+      const meds = load(KEY_DOL_TRAT).filter(Boolean).sort((a, b) => porFechaDesc(medOrden(a), medOrden(b)));
+      const titulos = {};
+      load(KEY_DOLENCIAS).forEach(x => { if (x) titulos[x.id] = x.titulo; });
+      hmMedList.innerHTML = meds.length ? meds.map(t => `<div class="tarea dolencia" data-id="${t.id}" role="button" tabindex="0">
+          <div class="tarea-txt">
+            <span class="tarea-src cita-fecha">${medFechaTxt(t)}</span>
+            ${medTituloHTML(t)}
+            ${titulos[t.dolenciaId] ? `<span class="dd-notas">${escapeHtml(titulos[t.dolenciaId])}</span>` : ""}
+            ${t.notas ? `<span class="dd-notas">${escapeHtml(t.notas)}</span>` : ""}
+          </div>
+        </div>`).join("") : '<div class="empty">No hay medicación registrada.</div>';
+    }
+    filasClicables(hmMedList, (row) => medicacion.editar(row, true));
+    document.getElementById("hm-med-new").addEventListener("click", () => medicacion.nuevoEligiendo());
 
     function openDolenciaNew() {
       editDolenciaId = null;
@@ -4497,11 +4860,14 @@
 
     doDelete.addEventListener("click", () => {
       if (!editDolenciaId) return;
-      if (!confirm("¿Eliminar esta dolencia? También se borrarán sus citas y su medicación.")) return;
+      if (!confirm("¿Eliminar esta dolencia? También se borrarán su medicación, su evolución y las descripciones de citas asociadas a ella (las citas se mantienen).")) return;
       const id = editDolenciaId;
       removeItem(KEY_DOLENCIAS, id);
-      load(KEY_DOL_CITAS).filter(x => x && x.dolenciaId === id).forEach(x => removeItem(KEY_DOL_CITAS, x.id));
+      load(KEY_CITA_DESC).filter(x => x && x.dolenciaId === id).forEach(x => removeItem(KEY_CITA_DESC, x.id));
+      // Citas del formato antiguo: se quita solo el vínculo con la dolencia
+      load(KEY_DOL_CITAS).filter(x => x && x.dolenciaId === id).forEach(x => patchItem(KEY_DOL_CITAS, x.id, { dolenciaId: null, notas: null }));
       load(KEY_DOL_TRAT).filter(x => x && x.dolenciaId === id).forEach(x => removeItem(KEY_DOL_TRAT, x.id));
+      load(KEY_DOL_EVOL).filter(x => x && x.dolenciaId === id).forEach(x => removeItem(KEY_DOL_EVOL, x.id));
       closeDolenciaModal();
       if (dolenciaActualId === id) cerrarDolencia();
       renderDolencias();
@@ -4510,13 +4876,54 @@
     /* ---------- Detalle de una dolencia ---------- */
     const ddNombre = document.getElementById("dd-nombre");
     const ddEstado = document.getElementById("dd-estado");
+    const ddPeriodo = document.getElementById("dd-periodo");
     const ddDiag = document.getElementById("dd-diag");
     const ddDiagStatus = document.getElementById("dd-diag-status");
-    const dcList = document.getElementById("dc-list");
-    const dtList = document.getElementById("dt-list");
+    const ddTimeline = document.getElementById("dd-timeline");
+    // Filtro del timeline: "" (todo), "cita", "med" o "evol"
+    let tlFiltro = "";
+    const TL_VACIO = {
+      "": "Aún no hay citas, medicación ni evolución.",
+      cita: "No hay citas.",
+      med: "No hay medicación.",
+      evol: "No hay entradas de evolución."
+    };
+    // Un único botón que muestra el filtro actual y abre un menú con las opciones
+    const tlFiltroBtn = document.getElementById("tl-filtro-btn");
+    const tlFiltroLbl = document.getElementById("tl-filtro-lbl");
+    const tlFiltroMenu = document.getElementById("tl-filtros");
+    function menuFiltro(abrir) {
+      tlFiltroMenu.hidden = !abrir;
+      tlFiltroBtn.setAttribute("aria-expanded", abrir ? "true" : "false");
+    }
+    tlFiltroBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menuFiltro(tlFiltroMenu.hidden);
+    });
+    tlFiltroMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest(".tl-filtro");
+      if (!btn) return;
+      tlFiltro = btn.dataset.filtro;
+      tlFiltroMenu.querySelectorAll(".tl-filtro").forEach(b => {
+        b.classList.toggle("active", b === btn);
+        b.setAttribute("aria-checked", b === btn ? "true" : "false");
+      });
+      tlFiltroLbl.textContent = btn.textContent;
+      tlFiltroBtn.classList.toggle("filtrado", !!tlFiltro);
+      menuFiltro(false);
+      renderDolenciaDetalle();
+    });
+    // Se cierra al tocar fuera o con Escape
+    document.addEventListener("click", (e) => {
+      if (!tlFiltroMenu.hidden && !e.target.closest(".tl-filtro-wrap")) menuFiltro(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !tlFiltroMenu.hidden) menuFiltro(false);
+    });
 
     function abrirDolencia(id) {
       guardarDiagnostico(); // por si quedaba algo sin guardar de otra dolencia
+      guardarGeneral();
       dolenciaActualId = id;
       ddDiagStatus.textContent = "";
       activateTab("dolencia");
@@ -4534,11 +4941,33 @@
       if (dolenciaActualId) startDolenciaEdit(dolenciaActualId);
     });
 
-    // Fecha "YYYY-MM-DD" + hora opcional → texto legible
+    // Fecha "YYYY-MM-DD" + hora opcional → "26 Sep 2026 · 10:30", siempre completa
+    // (sin Hoy/Ayer). Sin día de la semana y con el mes en 3 letras
+    // (toLocaleDateString da "sept").
+    const MESES_3 = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     function fechaHoraTxt(fecha, hora) {
       if (!fecha) return "";
-      return formatDayFull(fecha) + (hora ? " · " + hora : "");
+      const [y, m, d] = fecha.split("-").map(Number);
+      return `${d} ${MESES_3[m - 1]} ${y}` + (hora ? " · " + hora : "");
     }
+    // Medicación: fecha con la que se ordena (inicio si es un intervalo)
+    function medFecha(t) { return t.posologia === "intervalo" ? t.inicio : t.fecha; }
+    // Línea de fecha: "27 Sep 2026 · 10:30", "20 Sep 2026 – 27 Sep 2026" o "Desde 20 Sep 2026"
+    function medFechaTxt(t) {
+      if (t.posologia !== "intervalo") return fechaHoraTxt(t.fecha, t.hora);
+      return t.fin ? fechaHoraTxt(t.inicio) + " – " + fechaHoraTxt(t.fin) : "Desde " + fechaHoraTxt(t.inicio);
+    }
+    // "Apiretal · 2,5 ml · cada 8 horas"
+    function medTituloHTML(t) {
+      return escapeHtml(t.medicamento || "Medicamento")
+        + (t.dosis ? " · " + escapeHtml(t.dosis) : "")
+        + (t.posologia === "intervalo" && t.frecuencia ? " · " + escapeHtml(t.frecuencia) : "");
+    }
+    // Para ordenar con porFechaDesc
+    function medOrden(t) {
+      return { fecha: medFecha(t) || "", hora: t.posologia === "intervalo" ? "" : (t.hora || ""), creada: t.creada };
+    }
+
     // Orden cronológico inverso por fecha y hora
     function porFechaDesc(a, b) {
       return ((b.fecha || "") + (b.hora || "")).localeCompare((a.fecha || "") + (a.hora || ""))
@@ -4559,31 +4988,57 @@
       ddNombre.textContent = d.titulo || "Dolencia";
       ddEstado.textContent = resuelta ? "Resuelta" : "En curso";
       ddEstado.className = "estado-pill " + (resuelta ? "resuelta" : "en-curso");
+      // Periodo calculado a partir del timeline
+      const rango = rangoDolencia(d.id);
+      ddPeriodo.hidden = !rango;
+      ddPeriodo.textContent = rango ? rangoTxt(rango) : "";
       // No pisa el texto mientras se está escribiendo
       if (forzarDiag || document.activeElement !== ddDiag) ddDiag.value = d.diagnostico || "";
 
-      const hoy = todayStr();
-      // Citas: orden cronológico, las más recientes al final
-      const citas = load(KEY_DOL_CITAS).filter(x => x && x.dolenciaId === d.id)
-        .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "") || (a.creada || 0) - (b.creada || 0));
-      dcList.innerHTML = citas.length ? citas.map(c => {
-        const proxima = c.fecha >= hoy;
-        return `<div class="tarea dolencia" data-id="${c.id}" role="button" tabindex="0">
-          <div class="tarea-txt">${escapeHtml(c.lugar || "Cita")}
-            <span class="tarea-src">${fechaHoraTxt(c.fecha)}</span>
-            ${c.notas ? `<span class="dd-notas">${escapeHtml(c.notas)}</span>` : ""}
-          </div>
-          ${proxima ? '<span class="estado-pill proxima">Próxima</span>' : ""}
-        </div>`;
-      }).join("") : '<div class="empty">No hay citas registradas.</div>';
+      // Citas con alguna descripción de esta dolencia, las más recientes primero
+      const citas = load(KEY_DOL_CITAS).filter(Boolean).sort(porFechaDesc)
+        .map(c => ({ c, descs: descripcionesDeCita(c).filter(x => x.dolenciaId === d.id) }))
+        .filter(x => x.descs.length);
 
-      const trat = load(KEY_DOL_TRAT).filter(x => x && x.dolenciaId === d.id).sort(porFechaDesc);
-      dtList.innerHTML = trat.length ? trat.map(t => `<div class="tarea dolencia" data-id="${t.id}" role="button" tabindex="0">
-          <div class="tarea-txt">${escapeHtml(t.medicamento || "Medicamento")}${t.dosis ? " · " + escapeHtml(t.dosis) : ""}
-            <span class="tarea-src">${fechaHoraTxt(t.fecha, t.hora)}</span>
-            ${t.notas ? `<span class="dd-notas">${escapeHtml(t.notas)}</span>` : ""}
-          </div>
-        </div>`).join("") : '<div class="empty">No hay medicamentos registrados.</div>';
+      const trat = load(KEY_DOL_TRAT).filter(x => x && x.dolenciaId === d.id);
+
+      // Evolución: las más recientes primero (por fecha de inicio)
+      const evol = load(KEY_DOL_EVOL).filter(x => x && x.dolenciaId === d.id)
+        .sort((a, b) => (b.inicio || "").localeCompare(a.inicio || "") || (b.creada || 0) - (a.creada || 0));
+
+      // Timeline: citas, medicación y evolución juntas, las más recientes primero
+      // (la evolución se sitúa por su fecha de inicio)
+      const eventos = citas.map(({ c, descs }) => ({ tipo: "cita", fecha: c.fecha, hora: "", creada: c.creada, c, descs }))
+        .concat(trat.map(t => Object.assign(medOrden(t), { tipo: "med", t })))
+        .concat(evol.map(x => ({ tipo: "evol", fecha: x.inicio, hora: "", creada: x.creada, x })))
+        .filter(ev => !tlFiltro || ev.tipo === tlFiltro)
+        .sort(porFechaDesc);
+      ddTimeline.innerHTML = eventos.length ? eventos.map(ev => ev.tipo === "evol"
+        ? `<div class="tarea dolencia" data-tipo="evol" data-id="${ev.x.id}" role="button" tabindex="0">
+            <div class="tarea-txt">
+              <span class="chips chips-top"><span class="chip chip-evol">📈 Evolución</span></span>
+              <span class="tarea-src cita-fecha">${ev.x.fin ? fechaHoraTxt(ev.x.inicio) + " – " + fechaHoraTxt(ev.x.fin) : "Desde " + fechaHoraTxt(ev.x.inicio)}</span>
+              ${ev.x.texto ? `<span class="dd-notas">${escapeHtml(ev.x.texto)}</span>` : ""}
+            </div>
+          </div>`
+        : ev.tipo === "cita"
+        ? `<div class="tarea dolencia" data-tipo="cita" data-id="${ev.c.id}" role="button" tabindex="0">
+            <div class="tarea-txt">
+              <span class="chips chips-top"><span class="chip">📅 Cita</span></span>
+              <span class="tarea-src cita-fecha">${fechaHoraTxt(ev.c.fecha)}</span>
+              ${escapeHtml(citaTitulo(ev.c))}
+              ${ev.descs.filter(x => x.texto).map(x => `<span class="dd-notas">${escapeHtml(x.texto)}</span>`).join("")}
+            </div>
+          </div>`
+        : `<div class="tarea dolencia" data-tipo="med" data-id="${ev.t.id}" role="button" tabindex="0">
+            <div class="tarea-txt">
+              <span class="chips chips-top"><span class="chip chip-med">💊 Medicación</span></span>
+              <span class="tarea-src cita-fecha">${medFechaTxt(ev.t)}</span>
+              ${medTituloHTML(ev.t)}
+              ${ev.t.notas ? `<span class="dd-notas">${escapeHtml(ev.t.notas)}</span>` : ""}
+            </div>
+          </div>`
+      ).join("") : `<div class="empty">${TL_VACIO[tlFiltro]}</div>`;
     }
 
     // Diagnóstico: se guarda solo, un momento después de dejar de escribir
@@ -4606,42 +5061,80 @@
     });
     ddDiag.addEventListener("blur", guardarDiagnostico);
 
-    // Citas y medicación comparten la misma mecánica: modal de alta/edición
-    // con borrado, registros con `dolenciaId` en su propia lista.
+    // Tarjeta Diagnóstico plegable (el estado se mantiene al cambiar de dolencia)
+    const ddDiagToggle = document.getElementById("dd-diag-toggle");
+    const ddDiagBody = document.getElementById("dd-diag-body");
+    ddDiagToggle.addEventListener("click", () => {
+      const abrir = ddDiagBody.hidden;
+      if (!abrir) guardarDiagnostico();
+      ddDiagBody.hidden = !abrir;
+      ddDiagToggle.setAttribute("aria-expanded", abrir ? "true" : "false");
+    });
+
+    // Medicación: modal de alta/edición con borrado, registros con
+    // `dolenciaId` en su propia lista.
+    // Rellena un <select> con las dolencias (en curso primero, luego resueltas).
+    // `vacia`: texto de la primera opción sin valor. Devuelve la lista usada.
+    function rellenarSelectDolencias(select, vacia) {
+      const dols = load(KEY_DOLENCIAS).filter(Boolean)
+        .sort((a, b) => ((a.estado === "resuelta") - (b.estado === "resuelta")) || (b.creada || 0) - (a.creada || 0));
+      select.innerHTML = `<option value="">${vacia}</option>` + dols.map(d =>
+        `<option value="${d.id}">${escapeHtml(d.titulo)}${d.estado === "resuelta" ? " (resuelta)" : ""}</option>`).join("");
+      return dols;
+    }
+
     function registroDolencia(cfg) {
       const $ = (campo) => document.getElementById(cfg.prefijo + "-" + campo);
       const modal = $("modal"), form = $("form"), titulo = $("titulo"), submit = $("submit"), del = $("delete");
-      const list = document.getElementById(cfg.prefijo + "-list");
       let editId = null;
+      // Fuera de una dolencia (Historial › Medicación) la dolencia se elige en un desplegable
+      const selField = $("dolencia-field"), sel = $("dolencia");
+      let elegirDolencia = false;
 
-      function abrir(it) {
+      function abrir(it, conSelector) {
         editId = it ? it.id : null;
+        elegirDolencia = !!conSelector && !!sel;
+        if (selField) selField.hidden = !elegirDolencia;
+        if (elegirDolencia) {
+          const dols = rellenarSelectDolencias(sel, "— Sin dolencia —");
+          sel.value = it && dols.some(d => d.id === it.dolenciaId) ? it.dolenciaId : "";
+        }
         titulo.textContent = it ? cfg.tituloEditar : cfg.tituloNuevo;
         submit.textContent = it ? "Actualizar" : "Guardar";
         del.hidden = !it;
         cfg.campos.forEach(c => { $(c).value = it ? (it[c] || "") : ""; });
-        if (!it) { $("fecha").value = todayStr(); if (cfg.horaAhora) $("hora").value = nowTimeStr(); }
+        if (!it) { $(cfg.campoFecha || "fecha").value = todayStr(); if (cfg.horaAhora) $("hora").value = nowTimeStr(); }
+        if (cfg.alAbrir) cfg.alAbrir(it);
         modal.hidden = false;
-        $(cfg.campos[0]).focus();
+        (elegirDolencia ? sel : $(cfg.campos[0])).focus();
       }
-      function cerrar() { modal.hidden = true; editId = null; }
+      function cerrar() { modal.hidden = true; editId = null; elegirDolencia = false; }
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        if (modal.hidden || !dolenciaActualId) return; // evita doble envío
+        if (modal.hidden) return; // evita doble envío
+        // Con el desplegable se permite "Sin dolencia"; si no, se crea en la dolencia abierta
+        const dolenciaId = elegirDolencia ? (sel.value || null) : dolenciaActualId;
+        if (!elegirDolencia && !editId && !dolenciaId) return;
         const datos = {};
         cfg.campos.forEach(c => { datos[c] = $(c).value.trim() || null; });
+        if (cfg.completar) cfg.completar(datos);
+        if (cfg.validar) {
+          const err = cfg.validar(datos);
+          if (err) { alert(err); return; }
+        }
         if (editId) {
+          if (elegirDolencia) datos.dolenciaId = dolenciaId; // puede cambiarse de dolencia
           patchItem(cfg.key, editId, datos);
         } else {
-          const nuevo = { id: newId(), dolenciaId: dolenciaActualId, creada: Date.now() };
+          const nuevo = { id: newId(), creada: Date.now() };
+          if (dolenciaId) nuevo.dolenciaId = dolenciaId;
           cfg.campos.forEach(c => { if (datos[c]) nuevo[c] = datos[c]; });
           appendItems(cfg.key, [nuevo]);
         }
         cerrar();
-        renderDolenciaDetalle();
+        renderDolencias();
       });
-      $("new").addEventListener("click", () => abrir(null));
       $("cancel").addEventListener("click", cerrar);
       modal.addEventListener("click", (e) => { if (e.target === modal) cerrar(); });
       document.addEventListener("keydown", (e) => {
@@ -4652,35 +5145,335 @@
         if (!confirm(cfg.confirmarBorrar)) return;
         removeItem(cfg.key, editId);
         cerrar();
-        renderDolenciaDetalle();
+        renderDolencias();
       });
-      const editar = (row) => {
+      const editar = (row, conSelector) => {
         const it = load(cfg.key).find(x => x && x.id === row.dataset.id);
-        if (it) abrir(it);
+        if (it) abrir(it, conSelector);
       };
-      list.addEventListener("click", (e) => {
-        const row = e.target.closest(".dolencia");
-        if (row) editar(row);
-      });
-      list.addEventListener("keydown", (e) => {
-        if (e.key !== "Enter" && e.key !== " ") return;
-        const row = e.target.closest(".dolencia");
-        if (!row) return;
-        e.preventDefault();
-        editar(row);
-      });
+      return { editar, nuevo: () => abrir(null), nuevoEligiendo: () => abrir(null, true) };
     }
-    registroDolencia({
-      prefijo: "dc", key: KEY_DOL_CITAS,
-      campos: ["fecha", "lugar", "notas"],
-      tituloNuevo: "Nueva cita", tituloEditar: "Editar cita",
-      confirmarBorrar: "¿Eliminar esta cita?"
-    });
-    registroDolencia({
+    // Posología del medicamento: "puntual" (fecha + hora) o "intervalo"
+    // (inicio, fin opcional y frecuencia). Los antiguos, sin posología, son puntuales.
+    const dtPosPuntual = document.getElementById("dt-pos-puntual");
+    const dtPosIntervalo = document.getElementById("dt-pos-intervalo");
+    const dtPuntual = document.getElementById("dt-puntual");
+    const dtIntervalo = document.getElementById("dt-intervalo");
+    function mostrarPosologia() {
+      const intervalo = dtPosIntervalo.checked;
+      dtPuntual.hidden = intervalo;
+      dtIntervalo.hidden = !intervalo;
+    }
+    // "Sin hora": desactiva el campo Hora; si no está marcado, la hora es obligatoria
+    const dtHora = document.getElementById("dt-hora");
+    const dtSinHora = document.getElementById("dt-sin-hora");
+    function aplicarSinHora() {
+      dtHora.disabled = dtSinHora.checked;
+      if (!dtSinHora.checked && !dtHora.value) dtHora.value = nowTimeStr();
+    }
+    dtSinHora.addEventListener("change", aplicarSinHora);
+    dtPosPuntual.addEventListener("change", mostrarPosologia);
+    dtPosIntervalo.addEventListener("change", mostrarPosologia);
+
+    const medicacion = registroDolencia({
       prefijo: "dt", key: KEY_DOL_TRAT,
-      campos: ["medicamento", "dosis", "fecha", "hora", "notas"],
+      campos: ["medicamento", "dosis", "fecha", "hora", "inicio", "fin", "frecuencia", "notas"],
       tituloNuevo: "Nuevo medicamento", tituloEditar: "Editar medicamento",
-      confirmarBorrar: "¿Eliminar este medicamento?", horaAhora: true
+      confirmarBorrar: "¿Eliminar este medicamento?", horaAhora: true,
+      alAbrir: (it) => {
+        const intervalo = !!it && it.posologia === "intervalo";
+        dtPosIntervalo.checked = intervalo;
+        dtPosPuntual.checked = !intervalo;
+        // Un puntual ya guardado sin hora aparece con "Sin hora" marcado
+        dtSinHora.checked = !!it && !intervalo && !it.hora;
+        dtHora.disabled = dtSinHora.checked;
+        // Al pasar de uno a otro, la fecha de inicio parte de la fecha puntual
+        if (!document.getElementById("dt-inicio").value) {
+          document.getElementById("dt-inicio").value = document.getElementById("dt-fecha").value || todayStr();
+        }
+        mostrarPosologia();
+      },
+      // Guarda solo los campos de la posología elegida y borra los de la otra
+      completar: (d) => {
+        d.posologia = dtPosIntervalo.checked ? "intervalo" : "puntual";
+        if (d.posologia === "intervalo") { d.fecha = null; d.hora = null; }
+        else {
+          d.inicio = null; d.fin = null; d.frecuencia = null;
+          if (dtSinHora.checked) d.hora = null;
+        }
+      },
+      validar: (d) => {
+        if (d.posologia === "puntual" && !d.fecha) return "Indica la fecha.";
+        if (d.posologia === "puntual" && !d.hora && !dtSinHora.checked) return "Indica la hora o marca «Sin hora».";
+        if (d.posologia === "intervalo") {
+          if (!d.inicio) return "Indica la fecha de inicio.";
+          if (d.fin && d.fin < d.inicio) return "La fecha de fin no puede ser anterior a la de inicio.";
+        }
+        return "";
+      }
+    });
+    const evolucion = registroDolencia({
+      prefijo: "de", key: KEY_DOL_EVOL,
+      campos: ["inicio", "fin", "texto"], campoFecha: "inicio",
+      tituloNuevo: "Nueva entrada", tituloEditar: "Editar entrada",
+      confirmarBorrar: "¿Eliminar esta entrada?",
+      validar: (d) => (d.fin && d.fin < d.inicio ? "La fecha de fin no puede ser anterior a la de inicio." : "")
+    });
+
+    // Timeline: "+ Nueva entrada" → elegir tipo → su ventana de alta
+    const tlModal = document.getElementById("tl-modal");
+    const cerrarTl = () => { tlModal.hidden = true; };
+    document.getElementById("tl-new").addEventListener("click", () => { tlModal.hidden = false; });
+    document.getElementById("tl-cancel").addEventListener("click", cerrarTl);
+    tlModal.addEventListener("click", (e) => { if (e.target === tlModal) cerrarTl(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !tlModal.hidden) cerrarTl();
+    });
+    tlModal.querySelectorAll(".fab-choice").forEach(btn => {
+      btn.addEventListener("click", () => {
+        cerrarTl();
+        if (btn.dataset.tl === "cita") openCitaNew(dolenciaActualId);
+        else if (btn.dataset.tl === "evol") evolucion.nuevo();
+        else medicacion.nuevo();
+      });
+    });
+
+    // Timeline: cita → su detalle; medicación y evolución → su ventana de edición
+    filasClicables(ddTimeline, (row) => {
+      if (row.dataset.tipo === "cita") abrirCita(row.dataset.id, dolenciaActualId);
+      else if (row.dataset.tipo === "evol") evolucion.editar(row);
+      else medicacion.editar(row);
+    });
+
+    /* ---------- Modal de cita (crear / editar) ---------- */
+    const ciModal = document.getElementById("ci-modal");
+    const ciTitulo = document.getElementById("ci-titulo");
+    const ciTexto = document.getElementById("ci-texto");
+    const ciFecha = document.getElementById("ci-fecha");
+    const ciDescField = document.getElementById("ci-desc-field");
+    const ciDescLabel = document.getElementById("ci-desc-label");
+    const ciDesc = document.getElementById("ci-desc");
+    const ciSubmit = document.getElementById("ci-submit");
+    const ciDelete = document.getElementById("ci-delete");
+    let editCitaId = null;
+    let ciDolenciaId = null; // al crear desde una dolencia: descripción ligada a ella
+
+    // dolenciaId: si se crea desde el detalle de una dolencia
+    function openCitaNew(dolenciaId) {
+      editCitaId = null;
+      ciDolenciaId = dolenciaId || null;
+      ciTitulo.textContent = "Nueva cita";
+      ciSubmit.textContent = "Guardar";
+      ciDelete.hidden = true;
+      ciTexto.value = "";
+      ciFecha.value = todayStr();
+      ciDesc.value = "";
+      const d = ciDolenciaId && load(KEY_DOLENCIAS).find(x => x && x.id === ciDolenciaId);
+      ciDescField.hidden = !d;
+      if (d) ciDescLabel.textContent = "Descripción · " + d.titulo;
+      ciModal.hidden = false;
+      ciTexto.focus();
+    }
+    function startCitaEdit(id) {
+      const c = load(KEY_DOL_CITAS).find(x => x && x.id === id);
+      if (!c) return;
+      editCitaId = id;
+      ciDolenciaId = null;
+      ciTitulo.textContent = "Editar cita";
+      ciSubmit.textContent = "Actualizar";
+      ciDelete.hidden = false;
+      ciTexto.value = citaTitulo(c);
+      ciFecha.value = c.fecha || "";
+      ciDescField.hidden = true;
+      ciModal.hidden = false;
+      ciTexto.focus();
+    }
+    function closeCitaModal() {
+      ciModal.hidden = true;
+      editCitaId = null;
+      ciDolenciaId = null;
+    }
+    document.getElementById("ci-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (ciModal.hidden) return; // evita doble envío
+      const titulo = ciTexto.value.trim();
+      if (!titulo || !ciFecha.value) return;
+      if (editCitaId) {
+        patchItem(KEY_DOL_CITAS, editCitaId, { titulo, fecha: ciFecha.value });
+        closeCitaModal();
+      } else {
+        const id = newId();
+        appendItems(KEY_DOL_CITAS, [{ id, titulo, fecha: ciFecha.value, creada: Date.now() }]);
+        if (ciDolenciaId) {
+          appendItems(KEY_CITA_DESC, [{ id: newId(), citaId: id, dolenciaId: ciDolenciaId, texto: ciDesc.value.trim(), creada: Date.now() }]);
+        }
+        closeCitaModal();
+        // Creada desde la pestaña Citas: se entra directamente en su detalle
+        if (!dolenciaActualId || !document.getElementById("panel-dolencia").classList.contains("active")) abrirCita(id);
+      }
+      renderDolencias();
+    });
+    document.getElementById("ci-new").addEventListener("click", () => openCitaNew(null));
+    document.getElementById("ci-cancel").addEventListener("click", closeCitaModal);
+    ciModal.addEventListener("click", (e) => { if (e.target === ciModal) closeCitaModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !ciModal.hidden) closeCitaModal();
+    });
+    ciDelete.addEventListener("click", () => {
+      if (!editCitaId) return;
+      if (!confirm("¿Eliminar esta cita y todas sus descripciones?")) return;
+      const id = editCitaId;
+      removeItem(KEY_DOL_CITAS, id);
+      load(KEY_CITA_DESC).filter(x => x && x.citaId === id).forEach(x => removeItem(KEY_CITA_DESC, x.id));
+      closeCitaModal();
+      if (citaActualId === id) cerrarCita();
+      renderDolencias();
+    });
+
+    /* ---------- Detalle de una cita ---------- */
+    const cvNombre = document.getElementById("cv-nombre");
+    const cvFecha = document.getElementById("cv-fecha");
+    const cvGeneral = document.getElementById("cv-general");
+    const cvGeneralStatus = document.getElementById("cv-general-status");
+    const cvBack = document.getElementById("cv-back");
+    const cdList = document.getElementById("cd-list");
+    let citaActualId = null;
+    let citaOrigenDolencia = null; // si se abrió desde una dolencia, se vuelve a ella
+
+    // Convierte una cita del formato antiguo (dolenciaId/lugar/notas en la cita)
+    function migrarCita(c) {
+      if (!c.dolenciaId && c.titulo) return;
+      if (c.dolenciaId) {
+        appendItems(KEY_CITA_DESC, [{ id: newId(), citaId: c.id, dolenciaId: c.dolenciaId, texto: c.notas || "", creada: c.creada || Date.now() }]);
+      }
+      patchItem(KEY_DOL_CITAS, c.id, { titulo: citaTitulo(c), dolenciaId: null, lugar: null, notas: null });
+    }
+
+    function abrirCita(id, desdeDolencia) {
+      const c = load(KEY_DOL_CITAS).find(x => x && x.id === id);
+      if (!c) return;
+      guardarDiagnostico();
+      guardarGeneral();
+      migrarCita(c);
+      citaActualId = id;
+      citaOrigenDolencia = desdeDolencia || null;
+      const d = citaOrigenDolencia && load(KEY_DOLENCIAS).find(x => x && x.id === citaOrigenDolencia);
+      cvBack.textContent = "← " + (d ? d.titulo : "Historial médico");
+      cvGeneralStatus.textContent = "";
+      activateTab("cita");
+      if (db) idbSet(KEY_UI_TAB, "dolencias").catch(() => {});
+      renderCitaDetalle(true);
+      window.scrollTo(0, 0);
+    }
+    function cerrarCita() {
+      guardarGeneral();
+      citaActualId = null;
+      const volverA = citaOrigenDolencia;
+      citaOrigenDolencia = null;
+      if (volverA && load(KEY_DOLENCIAS).some(x => x && x.id === volverA)) abrirDolencia(volverA);
+      else activateTab("dolencias");
+    }
+    cvBack.addEventListener("click", cerrarCita);
+    document.getElementById("cv-edit").addEventListener("click", () => {
+      if (citaActualId) startCitaEdit(citaActualId);
+    });
+
+    function renderCitaDetalle(forzarTexto) {
+      if (!citaActualId) return;
+      const c = load(KEY_DOL_CITAS).find(x => x && x.id === citaActualId);
+      if (!c) {
+        // Se borró (quizá desde otro dispositivo): vuelve atrás si estaba abierta
+        if (document.getElementById("panel-cita").classList.contains("active")) cerrarCita();
+        else citaActualId = null;
+        return;
+      }
+      cvNombre.textContent = citaTitulo(c);
+      // Fecha y edad exacta de Sofía ese día
+      const edad = c.fecha ? edadEn(new Date(c.fecha + "T00:00")) : null;
+      cvFecha.innerHTML = escapeHtml(fechaHoraTxt(c.fecha)) + (edad ? ` · <span class="cv-edad">Edad: ${escapeHtml(edad)}</span>` : "");
+      // No pisa el texto mientras se está escribiendo
+      if (forzarTexto || document.activeElement !== cvGeneral) cvGeneral.value = c.general || "";
+
+      const titulos = {};
+      load(KEY_DOLENCIAS).forEach(x => { if (x) titulos[x.id] = x.titulo; });
+      const descs = descripcionesDeCita(c);
+      cdList.innerHTML = descs.length ? descs.map(x => `<div class="tarea dolencia" data-id="${x.id}" role="button" tabindex="0">
+          <div class="tarea-txt">
+            ${x.dolenciaId && titulos[x.dolenciaId] ? `<span class="chips chips-top"><span class="chip">${escapeHtml(titulos[x.dolenciaId])}</span></span>` : ""}
+            <span class="dd-notas">${escapeHtml(x.texto || "")}</span>
+          </div>
+        </div>`).join("") : '<div class="empty">No hay descripciones.</div>';
+    }
+
+    // Descripción general: se guarda sola, igual que el diagnóstico
+    let generalTimer = null;
+    function guardarGeneral() {
+      clearTimeout(generalTimer);
+      generalTimer = null;
+      if (!citaActualId) return;
+      const c = load(KEY_DOL_CITAS).find(x => x && x.id === citaActualId);
+      if (!c) return;
+      const txt = cvGeneral.value.trim();
+      if ((c.general || "") === txt) return;
+      patchItem(KEY_DOL_CITAS, c.id, { general: txt || null });
+      cvGeneralStatus.textContent = "✓ Guardado";
+    }
+    cvGeneral.addEventListener("input", () => {
+      cvGeneralStatus.textContent = "Guardando…";
+      clearTimeout(generalTimer);
+      generalTimer = setTimeout(guardarGeneral, 800);
+    });
+    cvGeneral.addEventListener("blur", guardarGeneral);
+
+    /* ---------- Descripciones de una cita ---------- */
+    const cdModal = document.getElementById("cd-modal");
+    const cdTitulo = document.getElementById("cd-titulo");
+    const cdDolencia = document.getElementById("cd-dolencia");
+    const cdTexto = document.getElementById("cd-texto");
+    const cdSubmit = document.getElementById("cd-submit");
+    const cdDelete = document.getElementById("cd-delete");
+    let editDescId = null;
+
+    function abrirDescripcion(it) {
+      editDescId = it ? it.id : null;
+      cdTitulo.textContent = it ? "Editar descripción" : "Nueva descripción";
+      cdSubmit.textContent = it ? "Actualizar" : "Guardar";
+      cdDelete.hidden = !it;
+      const dols = rellenarSelectDolencias(cdDolencia, "— Sin dolencia —");
+      cdDolencia.value = it && it.dolenciaId && dols.some(d => d.id === it.dolenciaId) ? it.dolenciaId : "";
+      cdTexto.value = it ? (it.texto || "") : "";
+      cdModal.hidden = false;
+      cdTexto.focus();
+    }
+    function cerrarDescripcion() { cdModal.hidden = true; editDescId = null; }
+
+    document.getElementById("cd-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (cdModal.hidden || !citaActualId) return; // evita doble envío
+      const texto = cdTexto.value.trim();
+      if (!texto) return;
+      const dolenciaId = cdDolencia.value || null;
+      if (editDescId) patchItem(KEY_CITA_DESC, editDescId, { texto, dolenciaId });
+      else appendItems(KEY_CITA_DESC, [{ id: newId(), citaId: citaActualId, dolenciaId, texto, creada: Date.now() }]);
+      cerrarDescripcion();
+      renderDolencias();
+    });
+    document.getElementById("cd-new").addEventListener("click", () => abrirDescripcion(null));
+    document.getElementById("cd-cancel").addEventListener("click", cerrarDescripcion);
+    cdModal.addEventListener("click", (e) => { if (e.target === cdModal) cerrarDescripcion(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !cdModal.hidden) cerrarDescripcion();
+    });
+    cdDelete.addEventListener("click", () => {
+      if (!editDescId) return;
+      if (!confirm("¿Eliminar esta descripción?")) return;
+      removeItem(KEY_CITA_DESC, editDescId);
+      cerrarDescripcion();
+      renderDolencias();
+    });
+    filasClicables(cdList, (row) => {
+      const it = load(KEY_CITA_DESC).find(x => x && x.id === row.dataset.id);
+      if (it) abrirDescripcion(it);
     });
 
     /* ---------- Sub-pestañas (con ámbito local a su contenedor) ---------- */
