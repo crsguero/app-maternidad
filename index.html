@@ -597,6 +597,7 @@
       flex: none;
     }
     .info-btn:hover { background: #f3f1fb; }
+    .toolbar-btns { display: flex; gap: 8px; }
 
     .form-select {
       width: 100%;
@@ -937,7 +938,7 @@
       text-transform: capitalize;
       margin-bottom: 10px;
     }
-    .resumen-stats { display: flex; gap: 28px; }
+    .resumen-stats { display: flex; flex-wrap: wrap; gap: 10px 28px; }
     .stat-val { font-size: 1.3rem; font-weight: 700; }
     /* Resumen de Tomas: fecha y datos en la misma fila, datos a la derecha */
     #t-resumen .resumen-head,
@@ -1748,7 +1749,10 @@
     <section class="panel" id="panel-extracciones">
       <div class="toolbar toolbar-split">
         <h2 class="panel-title">💧 Extracciones</h2>
-        <button type="button" class="info-btn" id="e-info-btn" title="Horario de extracciones" aria-label="Horario de extracciones">ℹ️</button>
+        <div class="toolbar-btns">
+          <button type="button" class="info-btn" id="e-export-btn" title="Exportar informe (PDF)" aria-label="Exportar informe de extracciones en PDF">📄</button>
+          <button type="button" class="info-btn" id="e-info-btn" title="Horario de extracciones" aria-label="Horario de extracciones">ℹ️</button>
+        </div>
       </div>
 
       <div class="modal-overlay" id="e-info-modal" hidden>
@@ -1782,9 +1786,14 @@
               <input type="number" id="e-duracion" min="0" step="1" inputmode="numeric" placeholder="Ej. 15" required>
             </div>
             <div class="field">
-              <label for="e-ml">Cantidad (ml)</label>
-              <input type="number" id="e-ml" min="0" step="5" inputmode="numeric" placeholder="Opcional">
+              <label for="e-potencia">Potencia</label>
+              <input type="number" id="e-potencia" min="0" step="any" inputmode="decimal" placeholder="Ej. 6">
             </div>
+          </div>
+
+          <div class="field">
+            <label for="e-ml">Cantidad (ml)</label>
+            <input type="number" id="e-ml" min="0" step="5" inputmode="numeric" placeholder="Opcional">
           </div>
 
           <div class="field">
@@ -2842,7 +2851,7 @@
           : fbOnline
             ? "Sincronizado en la nube"
             : `Sin conexión${pend ? ` · ${pend} cambio${pend === 1 ? "" : "s"} pendiente${pend === 1 ? "" : "s"}` : ""}`;
-        el.textContent = `✓ v96 · ${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v104 · ${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = fbReady && !fbOnline ? "status warn" : "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -3771,6 +3780,116 @@
       renderTomas(); // recalcula los rangos del resumen (hoy en adelante)
     });
 
+    // Informe PDF de extracciones. jsPDF se carga solo al pulsar el botón.
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("no se pudo cargar " + src));
+        document.head.appendChild(s);
+      });
+    }
+    async function loadJsPDF() {
+      if (!window.jspdf) {
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      }
+      if (!window.jspdf.jsPDF.API.autoTable) {
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+      }
+      return window.jspdf.jsPDF;
+    }
+    document.getElementById("e-export-btn").addEventListener("click", async () => {
+      const extras = load(KEY_EXTRA).filter(Boolean)
+        .slice().sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+      if (!extras.length) { alert("Aún no hay extracciones registradas."); return; }
+      // La pestaña se abre ya, dentro del clic: si se abre tras la carga
+      // asíncrona, el navegador la bloquea como ventana emergente.
+      const win = window.open("", "_blank");
+      if (win) win.document.write("<p style='font-family:sans-serif'>Generando informe…</p>");
+      try {
+        const JsPDF = await loadJsPDF();
+        const doc = new JsPDF({ unit: "pt", format: "a4" });
+        const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        const MESES_LARGO = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
+          "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+        // "Lun, 24 jul 2026"
+        const fmtFecha = (f) => {
+          const [y, m, d] = f.split("-").map(Number);
+          return `${DIAS[new Date(y, m - 1, d).getDay()]}, ${d} ${MESES[m - 1]} ${y}`;
+        };
+        const tieneValor = (v) => v !== undefined && v !== null && v !== "";
+        const PRIMARIO = [124, 108, 224];
+        doc.setFontSize(16);
+        doc.text("Informe de extracciones", 40, 50);
+        doc.setFontSize(10);
+        doc.setTextColor(110);
+        doc.text(`Generado el ${fmtFecha(todayStr())} a las ${nowTimeStr()} · ${extras.length} ${extras.length === 1 ? "extracción" : "extracciones"}`, 40, 68);
+        doc.text("* Cambio de duración o potencia respecto a la misma extracción del día anterior", 40, 82);
+
+        // Agrupadas por día: una fila de cabecera con la fecha y el total del
+        // día (incompleto si alguna no tiene cantidad o está marcada así),
+        // seguida de sus extracciones.
+        const porDia = {};
+        extras.forEach(x => { (porDia[x.fecha] = porDia[x.fecha] || []).push(x); });
+        const grupo = { fillColor: [236, 232, 252], fontStyle: "bold", textColor: [60, 50, 120] };
+        const cambiado = { fontStyle: "bold", textColor: PRIMARIO };
+        const cambia = (a, b) => tieneValor(a) && tieneValor(b) && Number(a) !== Number(b);
+        // Celda de duración/potencia: con * en negrita y color primario si
+        // cambió respecto a la misma extracción del día anterior
+        const celda = (texto, marcado) => marcado ? { content: texto + " *", styles: cambiado } : texto;
+        const porMes = {}; // "YYYY-MM" → filas de la tabla de ese mes
+        Object.keys(porDia).sort().forEach(fecha => {
+          const body = porMes[fecha.slice(0, 7)] = porMes[fecha.slice(0, 7)] || [];
+          const items = porDia[fecha];
+          const total = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
+          const incompleta = items.some(x => x.incompleto || !(Number(x.ml) > 0));
+          body.push([
+            { content: fmtFecha(fecha), colSpan: 4, styles: grupo },
+            { content: `Total: ${total} ml${incompleta ? " (incompleta)" : ""}`, styles: grupo }
+          ]);
+          // Misma extracción (nº dentro del día) del día anterior. Los cambios
+          // solo se marcan desde agosto de 2026.
+          const previas = fecha >= "2026-08-01" ? porDia[addDays(fecha, -1)] || [] : [];
+          items.forEach((x, n) => {
+            const ant = previas[n];
+            body.push([
+              `Extracción ${n + 1}`,
+              x.hora,
+              celda(tieneValor(x.duracion) ? formatDuracion(x.duracion) : "—", !!ant && cambia(x.duracion, ant.duracion)),
+              celda(tieneValor(x.potencia) ? String(x.potencia) : "—", !!ant && cambia(x.potencia, ant.potencia)),
+              x.ml ? `${x.ml} ml${x.incompleto ? " (incompleta)" : ""}` : "—"
+            ]);
+          });
+        });
+
+        // Cada mes empieza en una página nueva, con su título
+        Object.keys(porMes).sort().forEach((mes, i) => {
+          let y = 112;
+          if (i > 0) { doc.addPage(); y = 50; }
+          const [anio, m] = mes.split("-").map(Number);
+          doc.setFontSize(13);
+          doc.setTextColor(60, 50, 120);
+          doc.text(`${MESES_LARGO[m - 1]} ${anio}`, 40, y);
+          doc.autoTable({
+            startY: y + 12,
+            head: [["Extracción", "Hora", "Duración", "Potencia", "Cantidad"]],
+            body: porMes[mes],
+            styles: { fontSize: 10, cellPadding: 6 },
+            headStyles: { fillColor: PRIMARIO },
+            margin: { left: 40, right: 40 }
+          });
+        });
+        const url = URL.createObjectURL(doc.output("blob"));
+        if (win) win.location.href = url;
+        else window.open(url, "_blank");
+      } catch (e) {
+        if (win) win.close();
+        showError("al exportar el informe: " + (e && e.message));
+      }
+    });
+
     // Modal de información de Extracciones (horario)
     const eInfoBtn = document.getElementById("e-info-btn");
     const eInfoModal = document.getElementById("e-info-modal");
@@ -3926,6 +4045,7 @@
     const eHora = document.getElementById("e-hora");
     const eDuracion = document.getElementById("e-duracion");
     const eMl = document.getElementById("e-ml");
+    const ePotencia = document.getElementById("e-potencia");
     const eList = document.getElementById("e-list");
     const eTitulo = document.getElementById("e-titulo");
     const eSubmit = document.getElementById("e-submit");
@@ -3968,6 +4088,7 @@
       eTitulo.textContent = "Nueva extracción";
       eSubmit.textContent = "Guardar";
       eDuracion.value = "";
+      ePotencia.value = "";
       eMl.value = "";
       setMood("");
       eMotivo.value = "";
@@ -3984,6 +4105,7 @@
       eFecha.value = ex.fecha;
       eHora.value = ex.hora;
       eDuracion.value = ex.duracion;
+      ePotencia.value = ex.potencia !== undefined && ex.potencia !== null ? ex.potencia : "";
       eMl.value = Number(ex.ml) > 0 ? ex.ml : "";
       setMood(ex.animo || "");
       eMotivo.value = ex.motivo || "";
@@ -4054,6 +4176,7 @@
     function extraDiaCardHTML(fecha, items, clickable) {
       const count = items.length;
       const totalMl = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
+      const totalMin = items.reduce((s, x) => s + (Number(x.duracion) || 0), 0);
       const incompleta = items.some(x => x.incompleto || !(Number(x.ml) > 0));
       // Media por extracción: solo sobre las que tienen cantidad registrada
       const conMl = items.filter(x => Number(x.ml) > 0);
@@ -4065,6 +4188,7 @@
         <div class="resumen-fecha">${formatDayAbrev(fecha)}</div>
         <div class="resumen-stats">
           <div class="stat"><div class="stat-val">${count}</div><div class="stat-lbl">${count === 1 ? "Extracción" : "Extracciones"}</div></div>
+          <div class="stat"><div class="stat-val">${totalMin} min</div><div class="stat-lbl">Duración</div></div>
           <div class="stat"><div class="stat-val">${incompleta ? `<span class="aprox" title="Cantidad incompleta"></span>` : ""}${totalMl} ml</div><div class="stat-lbl">Total</div></div>
           <div class="stat"><div class="stat-val">${media != null ? `${media} ml` : "—"}</div><div class="stat-lbl">Media/extr.</div></div>
         </div>
@@ -4197,7 +4321,7 @@
             ${x.animo ? `<span class="mood-ico" title="${moodLabel[x.animo] || ""}">${moodIco[x.animo] || ""}</span>` : ""}
             <div class="toma-info">
               <div class="toma-time">${x.hora}</div>
-              <div class="toma-dur">${formatDuracion(x.duracion)}</div>
+              <div class="toma-dur">${formatDuracion(x.duracion)}${x.potencia !== undefined && x.potencia !== null && x.potencia !== "" ? ` · Potencia ${x.potencia}` : ""}</div>
               <div class="toma-type">${gapById[x.id] ? `<span class="accent">${gapById[x.id]}</span>` : "Extracción"}</div>
               ${x.motivo ? `<div class="toma-motivo">${x.motivo}</div>` : ""}
             </div>
@@ -4228,6 +4352,7 @@
         fecha: eFecha.value,
         hora: eHora.value,
         duracion: eDuracion.value,
+        potencia: ePotencia.value.trim() === "" ? "" : Number(ePotencia.value),
         ml: eMl.value.trim() === "" ? "" : Number(eMl.value),
         animo: getMood(),
         motivo: eMotivo.value
@@ -6818,6 +6943,13 @@
           });
           if (changed) save(KEY_EXTRA, cache[KEY_EXTRA]);
         }
+
+        // Extracciones anteriores al campo Potencia: se rellenan con 6
+        // (en la nube lo hace migrarPotenciaNube al recibir el snapshot)
+        if (cache[KEY_EXTRA].some(x => x && x.potencia === undefined)) {
+          guardarLocal(KEY_EXTRA, cache[KEY_EXTRA].map(x =>
+            x && x.potencia === undefined ? Object.assign({}, x, { potencia: 6 }) : x));
+        }
       } catch (e) {
         showError("No se pudo abrir la base de datos: " + (e && e.message));
       }
@@ -6880,6 +7012,22 @@
        los editó otro dispositivo), actualizamos la caché, el respaldo local
        y volvemos a pintar. La primera vez que la nube está vacía pero este
        dispositivo ya tiene datos, los subimos para no perderlos. */
+    // Extracciones sin Potencia (anteriores al campo): se les pone 6, escribiendo
+    // solo ese campo de cada una (no se reescribe la lista entera).
+    function migrarPotenciaNube(remote) {
+      const cambios = {};
+      remote.forEach((x, i) => {
+        if (x && x.potencia === undefined) {
+          x.potencia = 6;
+          cambios[i + "/potencia"] = 6;
+        }
+      });
+      if (Object.keys(cambios).length && fbOnline) {
+        fdb.ref(FB_ROOT + "/" + KEY_EXTRA).update(cambios)
+          .catch((e) => showError("al sincronizar: " + (e && e.message)));
+      }
+    }
+
     function startFirebaseSync() {
       fbReady = true;
       // Estado real de la conexión. Sin esto, `fbReady` decía "sincronizado"
@@ -6902,6 +7050,7 @@
             return;
           }
           first = false;
+          if (key === KEY_EXTRA) migrarPotenciaNube(remote);
           remoto[key] = remote;   // lo que hay en la nube, tal cual
           fbSynced[key] = true;
           // Encima, los cambios locales que aún no han podido subir, para que no
