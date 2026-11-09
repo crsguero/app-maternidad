@@ -891,6 +891,16 @@
     .since-value.warn-text { color: var(--danger); }
     .since-value.ok-text { color: #2f8f6e; }
     .since-sub { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+    /* Lluvia de confeti (una vez al día al entrar en Extracciones) */
+    .confeti-capa { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 9999; }
+    .confeti-capa i { position: absolute; top: -20px; }
+    /* Cuenta atrás de extracciones: confeti de fondo, con el centro despejado para el texto */
+    .confeti-card {
+      background-image:
+        radial-gradient(ellipse 42% 75% at center, var(--card) 45%, transparent 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Crect x='14' y='12' width='10' height='5' rx='1' fill='%23f27ea9' transform='rotate(25 19 14)'/%3E%3Crect x='58' y='26' width='9' height='5' rx='1' fill='%23f7c948' transform='rotate(-35 62 28)'/%3E%3Ccircle cx='98' cy='14' r='3' fill='%233bb89a'/%3E%3Crect x='134' y='20' width='10' height='5' rx='1' fill='%239b7fe0' transform='rotate(60 139 22)'/%3E%3Ccircle cx='164' cy='44' r='2.5' fill='%23f59f5b'/%3E%3Crect x='28' y='50' width='9' height='5' rx='1' fill='%235aa9e6' transform='rotate(-20 32 52)'/%3E%3Crect x='82' y='54' width='10' height='5' rx='1' fill='%23f27ea9' transform='rotate(50 87 56)'/%3E%3Ccircle cx='122' cy='62' r='3' fill='%23f7c948'/%3E%3Crect x='150' y='76' width='9' height='5' rx='1' fill='%233bb89a' transform='rotate(-55 154 78)'/%3E%3Ccircle cx='12' cy='84' r='2.5' fill='%239b7fe0'/%3E%3Crect x='50' y='88' width='10' height='5' rx='1' fill='%23f59f5b' transform='rotate(35 55 90)'/%3E%3Crect x='104' y='96' width='9' height='5' rx='1' fill='%235aa9e6' transform='rotate(-30 108 98)'/%3E%3Ccircle cx='76' cy='108' r='2.5' fill='%233bb89a'/%3E%3Ccircle cx='160' cy='106' r='3' fill='%23f27ea9'/%3E%3C/svg%3E");
+      background-position: center;
+    }
     @media (max-width: 720px) {
       .since-value { font-size: 20px; }
     }
@@ -1825,14 +1835,20 @@
         </div>
       </div>
 
-      <div class="card since-card">
+      <div class="card since-card" hidden>
         <div class="since-label">Última extracción</div>
         <div class="since-value e-since">—</div>
       </div>
 
-      <div class="card since-card">
+      <div class="card since-card" hidden>
         <div class="since-label">Próxima extracción</div>
         <div class="since-value e-next">—</div>
+      </div>
+
+      <div class="card since-card confeti-card">
+        <div class="since-label">Cuenta atrás</div>
+        <div class="since-value" id="e-fin-value">—</div>
+        <div class="since-sub" id="e-fin-sub" hidden></div>
       </div>
 
       <div class="subtabs">
@@ -2722,6 +2738,9 @@
     const KEY_EXTRA_HORAS = "extracciones-horario"; // horas ("HH:MM") de las 3 extracciones del día
     const HORAS_EXTRA_DEF = ["8:30", "15:00", "21:30"]; // horario por defecto
     const FECHA_TRES_EXTRA = "2026-10-28"; // día en que se eliminó la antigua Extracción 1 (de 4 a 3)
+    const FECHA_FIN_EXTRA = "2026-12-04"; // último día de extracciones (cuenta atrás)
+    const KEY_UI_CONFETI = "ui-confeti-dia"; // último día en que se lanzó el confeti en este dispositivo
+    const HASH_EMAIL_CONFETI = "1a1db468e8c3a403e0808120059ae5d85fe46ff15bb26f940737888c3aa1162b"; // SHA-256 del email: la web es pública
     const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_SUENO_B, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_DOLENCIAS, KEY_DOL_CITAS, KEY_CITA_DESC, KEY_DOL_TRAT, KEY_DOL_EVOL, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS, KEY_EXTRA_HORAS];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
@@ -2922,7 +2941,7 @@
           : fbOnline
             ? "Sincronizado en la nube"
             : `Sin conexión${pend ? ` · ${pend} cambio${pend === 1 ? "" : "s"} pendiente${pend === 1 ? "" : "s"}` : ""}`;
-        el.textContent = `✓ v105 ·${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v110 ·${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = fbReady && !fbOnline ? "status warn" : "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -3094,6 +3113,7 @@
       tab.classList.add("active");
       target.classList.add("active");
       updateMobileNav();
+      if (panel === "extracciones") comprobarConfetiDiario();
     }
 
     document.querySelectorAll(".tab").forEach(tab => {
@@ -4259,6 +4279,98 @@
       });
     }
 
+    // Días que faltan para el último día de extracciones. Ambas fechas se
+    // interpretan en UTC: la resta no se ve afectada por el cambio de hora.
+    function diasHastaFinExtra() {
+      return Math.round((Date.parse(FECHA_FIN_EXTRA) - Date.parse(todayStr())) / 86400000);
+    }
+
+    async function esUsuariaConfeti() {
+      const email = fauth.currentUser && fauth.currentUser.email;
+      if (!email || !crypto.subtle) return false;
+      const datos = new TextEncoder().encode(email.trim().toLowerCase());
+      const hash = await crypto.subtle.digest("SHA-256", datos);
+      const hex = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, "0")).join("");
+      return hex === HASH_EMAIL_CONFETI;
+    }
+
+    function lanzarConfeti() {
+      const colores = ["#f27ea9", "#f7c948", "#3bb89a", "#9b7fe0", "#5aa9e6", "#f59f5b"];
+      const capa = document.createElement("div");
+      capa.className = "confeti-capa";
+      for (let i = 0; i < 90; i++) {
+        const pieza = document.createElement("i");
+        const ancho = 6 + Math.random() * 6;
+        const redonda = Math.random() < 0.3;
+        pieza.style.cssText = `left:${Math.random() * 100}%;width:${ancho}px;`
+          + `height:${redonda ? ancho : ancho / 2}px;`
+          + `border-radius:${redonda ? "50%" : "1px"};`
+          + `background:${colores[i % colores.length]};`;
+        capa.appendChild(pieza);
+        const deriva = (Math.random() - 0.5) * 160;
+        const giro = 360 + Math.random() * 720;
+        pieza.animate([
+          { transform: "translate(0, 0) rotate(0deg)", opacity: 1, offset: 0 },
+          { opacity: 1, offset: 0.8 },
+          { transform: `translate(${deriva}px, ${window.innerHeight + 40}px) rotate(${giro}deg)`, opacity: 0, offset: 1 }
+        ], {
+          duration: 2200 + Math.random() * 1800,
+          delay: Math.random() * 500,
+          easing: "ease-in",
+          fill: "both"
+        });
+      }
+      document.body.appendChild(capa);
+      setTimeout(() => capa.remove(), 4800);
+    }
+
+    // Confeti la primera vez que se entra en Extracciones cada día, mientras
+    // dure la cuenta atrás (solo para la cuenta de la usuaria).
+    let confetiComprobando = false;
+    async function comprobarConfetiDiario() {
+      if (!db || confetiComprobando || diasHastaFinExtra() < 0) return;
+      confetiComprobando = true;
+      try {
+        if (!(await esUsuariaConfeti())) return;
+        const hoy = todayStr();
+        if ((await idbGet(KEY_UI_CONFETI)) === hoy) return;
+        await idbSet(KEY_UI_CONFETI, hoy).catch(() => {});
+        lanzarConfeti();
+      } finally {
+        confetiComprobando = false;
+      }
+    }
+
+    // Si la app se reabre al día siguiente estando ya en Extracciones, cuenta como entrar
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      if (document.getElementById("panel-extracciones").classList.contains("active")) comprobarConfetiDiario();
+    });
+
+    // Cuenta atrás en días hasta el último día de extracciones.
+    function updateExtraFin() {
+      const el = document.getElementById("e-fin-value");
+      if (!el) return;
+      const dias = diasHastaFinExtra();
+      let text;
+      if (dias > 1) text = `Quedan ${dias} días`;
+      else if (dias === 1) text = "Queda 1 día";
+      else if (dias === 0) text = "Hoy es el último día";
+      else text = "Extracciones finalizadas";
+      el.textContent = text;
+      el.classList.toggle("muted", dias < 0);
+
+      // Desglose en semanas y días; con menos de una semana solo repetiría el número
+      const sub = document.getElementById("e-fin-sub");
+      sub.hidden = dias < 7;
+      if (dias >= 7) {
+        const semanas = Math.floor(dias / 7);
+        const resto = dias % 7;
+        sub.textContent = `${semanas} ${semanas === 1 ? "semana" : "semanas"}`
+          + (resto ? ` y ${resto} ${resto === 1 ? "día" : "días"}` : "");
+      }
+    }
+
     // Tarjeta de resumen de un día de extracciones
     function extraDiaCardHTML(fecha, items, clickable) {
       const count = items.length;
@@ -4367,6 +4479,7 @@
     function renderExtra() {
       updateExtraSince();
       updateNextExtraction();
+      updateExtraFin();
       renderExtraResumen();
       renderHomeExtra();
       const extras = load(KEY_EXTRA);
@@ -7082,6 +7195,7 @@
         updateTomaSince();
         updateExtraSince();
         updateNextExtraction();
+        updateExtraFin();
         updatePcSince();
         updatePcNext();
         updateHiSince();
