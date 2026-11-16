@@ -891,6 +891,14 @@
     .since-value.warn-text { color: var(--danger); }
     .since-value.ok-text { color: #2f8f6e; }
     .since-sub { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+    /* Botón de ajustes de la cuenta atrás: en la esquina; con ratón solo aparece
+       al pasar por encima del widget, en pantallas táctiles se ve siempre */
+    .confeti-card { position: relative; }
+    .e-fin-cfg { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; font-size: 0.95rem; }
+    @media (hover: hover) {
+      .e-fin-cfg { opacity: 0; transition: opacity 0.15s; }
+      .confeti-card:hover .e-fin-cfg, .e-fin-cfg:focus-visible { opacity: 1; }
+    }
     /* Lluvia de confeti (una vez al día al entrar en Extracciones) */
     .confeti-capa { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 9999; }
     .confeti-capa i { position: absolute; top: -20px; }
@@ -1776,6 +1784,25 @@
         </div>
       </div>
 
+      <!-- Modal: elegir los meses que se incluyen en el informe PDF -->
+      <div class="modal-overlay" id="e-export-modal" hidden>
+        <div class="modal-box card">
+          <div class="info-head">
+            <h2>Exportar informe</h2>
+            <button type="button" class="section-menu-close" id="e-export-close" aria-label="Cerrar">✕</button>
+          </div>
+          <p class="hint" style="margin:0 0 12px">Elige los meses que quieres incluir.</p>
+          <label class="check-label" style="margin-bottom:12px;font-weight:600">
+            <input type="checkbox" id="e-export-todos" checked> Todos los meses
+          </label>
+          <div id="e-export-meses"></div>
+          <div class="form-actions" style="margin-top:20px">
+            <button type="button" class="secondary" id="e-export-cancel">Cancelar</button>
+            <button type="button" class="primary" id="e-export-ok">Exportar PDF</button>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-overlay" id="e-modal" hidden>
         <div class="modal-box card">
         <h2 id="e-titulo">Nueva extracción</h2>
@@ -1846,9 +1873,23 @@
       </div>
 
       <div class="card since-card confeti-card">
+        <button type="button" class="info-btn e-fin-cfg" id="e-fin-cfg-btn" title="Fecha final de extracciones" aria-label="Ajustar la fecha final de las extracciones">⚙️</button>
         <div class="since-label">Cuenta atrás</div>
         <div class="since-value" id="e-fin-value">—</div>
         <div class="since-sub" id="e-fin-sub" hidden></div>
+      </div>
+
+      <div class="modal-overlay" id="e-fin-modal" hidden>
+        <div class="modal-box card">
+          <div class="info-head">
+            <h2>Fecha final de extracciones</h2>
+            <button type="button" class="section-menu-close" id="e-fin-close" aria-label="Cerrar">✕</button>
+          </div>
+          <div class="field">
+            <label for="e-fin-fecha">Último día de extracciones</label>
+            <input type="date" id="e-fin-fecha" required>
+          </div>
+        </div>
       </div>
 
       <div class="subtabs">
@@ -1928,6 +1969,7 @@
           <h2>Historial de pañales</h2>
           <button type="button" class="primary" id="pa-new">+ Nuevo pañal</button>
         </div>
+        <div class="pager" id="pa-pager"></div>
         <div id="pa-list"></div>
       </div>
     </section>
@@ -2738,10 +2780,11 @@
     const KEY_EXTRA_HORAS = "extracciones-horario"; // horas ("HH:MM") de las 3 extracciones del día
     const HORAS_EXTRA_DEF = ["8:30", "15:00", "21:30"]; // horario por defecto
     const FECHA_TRES_EXTRA = "2026-10-28"; // día en que se eliminó la antigua Extracción 1 (de 4 a 3)
-    const FECHA_FIN_EXTRA = "2026-12-04"; // último día de extracciones (cuenta atrás)
+    const FECHA_FIN_EXTRA_DEF = "2026-12-04"; // último día de extracciones si no se ha definido otro
+    const KEY_EXTRA_FIN = "extracciones-fecha-fin"; // ["AAAA-MM-DD"]: último día de extracciones (cuenta atrás)
     const KEY_UI_CONFETI = "ui-confeti-dia"; // último día en que se lanzó el confeti en este dispositivo
     const HASH_EMAIL_CONFETI = "1a1db468e8c3a403e0808120059ae5d85fe46ff15bb26f940737888c3aa1162b"; // SHA-256 del email: la web es pública
-    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_SUENO_B, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_DOLENCIAS, KEY_DOL_CITAS, KEY_CITA_DESC, KEY_DOL_TRAT, KEY_DOL_EVOL, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS, KEY_EXTRA_HORAS];
+    const ALL_KEYS = [KEY_TOMAS, KEY_EXTRA, KEY_SUENO_C, KEY_SUENO_F, KEY_SUENO_B, KEY_PARACETAMOL, KEY_PANALES, KEY_PESO, KEY_HIERRO, KEY_BANO, KEY_DOLENCIAS, KEY_DOL_CITAS, KEY_CITA_DESC, KEY_DOL_TRAT, KEY_DOL_EVOL, KEY_TAREAS, KEY_TAREAS_EXTRA, KEY_TAREAS_ANTES, KEY_DIA_APLICADA, KEY_TOMA_CFG, KEY_NAV_VIS, KEY_EXTRA_HORAS, KEY_EXTRA_FIN];
     const KEY_UI_TAB = "ui-active-tab"; // recuerda la pestaña activa entre recargas
 
     /* ---------- Almacenamiento (IndexedDB con caché en memoria) ----------
@@ -2764,7 +2807,7 @@
        índice. Sin ellas, el cambio va a la cola en vez de a Firebase: subir el
        array entero desde una caché vieja resucitaba tareas ya completadas. */
     function nubeFiable(key) { return fbReady && fbOnline && !!fbSynced[key]; }
-    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_SUENO_B]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_DOLENCIAS]: [], [KEY_DOL_CITAS]: [], [KEY_CITA_DESC]: [], [KEY_DOL_TRAT]: [], [KEY_DOL_EVOL]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [], [KEY_EXTRA_HORAS]: [] };
+    const cache = { [KEY_TOMAS]: [], [KEY_EXTRA]: [], [KEY_SUENO_C]: [], [KEY_SUENO_F]: [], [KEY_SUENO_B]: [], [KEY_PARACETAMOL]: [], [KEY_PANALES]: [], [KEY_PESO]: [], [KEY_HIERRO]: [], [KEY_BANO]: [], [KEY_DOLENCIAS]: [], [KEY_DOL_CITAS]: [], [KEY_CITA_DESC]: [], [KEY_DOL_TRAT]: [], [KEY_DOL_EVOL]: [], [KEY_TAREAS]: [], [KEY_TAREAS_EXTRA]: [], [KEY_TAREAS_ANTES]: [], [KEY_DIA_APLICADA]: [], [KEY_TOMA_CFG]: [], [KEY_NAV_VIS]: [], [KEY_EXTRA_HORAS]: [], [KEY_EXTRA_FIN]: [] };
 
     function openDB() {
       return new Promise((resolve, reject) => {
@@ -2941,7 +2984,7 @@
           : fbOnline
             ? "Sincronizado en la nube"
             : `Sin conexión${pend ? ` · ${pend} cambio${pend === 1 ? "" : "s"} pendiente${pend === 1 ? "" : "s"}` : ""}`;
-        el.textContent = `✓ v110 ·${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v111 ·${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = fbReady && !fbOnline ? "status warn" : "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -3892,7 +3935,56 @@
       }
       return window.jspdf.jsPDF;
     }
-    document.getElementById("e-export-btn").addEventListener("click", async () => {
+    // Modal de selección de meses: lista todos los meses con extracciones,
+    // todos marcados por defecto
+    const eExportModal = document.getElementById("e-export-modal");
+    const eExportMeses = document.getElementById("e-export-meses");
+    const eExportTodos = document.getElementById("e-export-todos");
+    const eExportOk = document.getElementById("e-export-ok");
+    const MESES_NOMBRE = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
+      "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const mesesMarcados = () =>
+      [...eExportMeses.querySelectorAll("input:checked")].map(c => c.dataset.mes);
+    function syncExportChecks() {
+      const todos = eExportMeses.querySelectorAll("input");
+      const n = mesesMarcados().length;
+      eExportTodos.checked = n === todos.length;
+      eExportTodos.indeterminate = n > 0 && n < todos.length;
+      eExportOk.disabled = n === 0;
+    }
+    function cerrarExportModal() { eExportModal.hidden = true; }
+    document.getElementById("e-export-btn").addEventListener("click", () => {
+      const extras = load(KEY_EXTRA).filter(Boolean);
+      if (!extras.length) { alert("Aún no hay extracciones registradas."); return; }
+      const cuenta = {};
+      extras.forEach(x => { if (x.fecha) cuenta[x.fecha.slice(0, 7)] = (cuenta[x.fecha.slice(0, 7)] || 0) + 1; });
+      eExportMeses.innerHTML = Object.keys(cuenta).sort().map(mes => {
+        const [anio, m] = mes.split("-").map(Number);
+        const n = cuenta[mes];
+        return `<label class="check-label" style="margin-bottom:10px">
+          <input type="checkbox" data-mes="${mes}" checked>
+          ${MESES_NOMBRE[m - 1]} ${anio} <span class="hint" style="margin:0 0 0 auto;font-weight:400">${n} ${n === 1 ? "extracción" : "extracciones"}</span>
+        </label>`;
+      }).join("");
+      syncExportChecks();
+      eExportModal.hidden = false;
+    });
+    eExportMeses.addEventListener("change", syncExportChecks);
+    eExportTodos.addEventListener("change", () => {
+      eExportMeses.querySelectorAll("input").forEach(c => { c.checked = eExportTodos.checked; });
+      syncExportChecks();
+    });
+    document.getElementById("e-export-close").addEventListener("click", cerrarExportModal);
+    document.getElementById("e-export-cancel").addEventListener("click", cerrarExportModal);
+    eExportModal.addEventListener("click", (e) => { if (e.target === eExportModal) cerrarExportModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !eExportModal.hidden) cerrarExportModal();
+    });
+
+    eExportOk.addEventListener("click", async () => {
+      const seleccion = new Set(mesesMarcados());
+      if (!seleccion.size) return;
+      cerrarExportModal();
       const extras = load(KEY_EXTRA).filter(Boolean)
         .slice().sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
       if (!extras.length) { alert("Aún no hay extracciones registradas."); return; }
@@ -3914,12 +4006,6 @@
         };
         const tieneValor = (v) => v !== undefined && v !== null && v !== "";
         const PRIMARIO = [124, 108, 224];
-        doc.setFontSize(16);
-        doc.text("Informe de extracciones", 40, 50);
-        doc.setFontSize(10);
-        doc.setTextColor(110);
-        doc.text(`Generado el ${fmtFecha(todayStr())} a las ${nowTimeStr()} · ${extras.length} ${extras.length === 1 ? "extracción" : "extracciones"}`, 40, 68);
-        doc.text("* Cambio de duración o potencia respecto a la misma extracción del día anterior", 40, 82);
 
         // Agrupadas por día: una fila de cabecera con la fecha y el total del
         // día (incompleto si alguna no tiene cantidad o está marcada así),
@@ -3933,7 +4019,28 @@
         // cambió respecto a la misma extracción del día anterior
         const celda = (texto, marcado) => marcado ? { content: texto + " *", styles: cambiado } : texto;
         const porMes = {}; // "YYYY-MM" → filas de la tabla de ese mes
-        Object.keys(porDia).sort().forEach(fecha => {
+        // fechas con algún cambio de hora, duración o potencia (*), más los
+        // días de transición (TRANSICIONES), que se marcan solo en la gráfica
+        const diasCambio = new Set();
+        // Días en que se eliminó una de las extracciones diarias:
+        // fecha → { eliminada: nº que desaparece, de: nº antes, a: nº después }
+        const TRANSICIONES = {
+          "2026-09-18": { eliminada: 4, de: 5, a: 4 },
+          [FECHA_TRES_EXTRA]: { eliminada: 1, de: 4, a: 3 }
+        };
+        // Los días de transición se marcan siempre como día con cambio en la gráfica
+        Object.keys(TRANSICIONES).forEach(f => diasCambio.add(f));
+        // Días en que se cambió la hora de las extracciones (marcados a mano:
+        // las horas varían un poco cada día y no se detectan solas)
+        // fecha → números de extracción (tal como salen en la tabla) cuya hora cambió
+        const DIAS_CAMBIO_HORA = {
+          "2026-09-07": [4], "2026-09-10": [4], "2026-09-16": [4],
+          "2026-10-18": [1], "2026-10-22": [1], "2026-10-26": [1],
+          "2026-11-10": [2], "2026-11-12": [2], "2026-11-14": [2] };
+        // porDia conserva todos los días (para comparar con el día anterior
+        // aunque sea de un mes no seleccionado y para el récord absoluto),
+        // pero solo se generan las tablas de los meses elegidos.
+        Object.keys(porDia).sort().filter(f => seleccion.has(f.slice(0, 7))).forEach(fecha => {
           const body = porMes[fecha.slice(0, 7)] = porMes[fecha.slice(0, 7)] || [];
           const items = porDia[fecha];
           const total = items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
@@ -3942,51 +4049,230 @@
             { content: fmtFecha(fecha), colSpan: 4, styles: grupo },
             { content: `Total: ${total} ml${incompleta ? " (incompleta)" : ""}`, styles: grupo }
           ]);
-          // El día del paso de 4 a 3 extracciones se mantiene la numeración
-          // antigua: la Extracción 1 figura como eliminada y las del día son
-          // la 2, la 3 y la 4.
-          const desfase = fecha === FECHA_TRES_EXTRA ? 1 : 0;
-          if (desfase) {
+          // Los días en que se eliminó una extracción se mantiene la
+          // numeración antigua: la eliminada figura como tal en su sitio y las
+          // siguientes conservan su número (p. ej. el 28 oct la 1 eliminada y
+          // las del día son la 2, la 3 y la 4).
+          const trans = TRANSICIONES[fecha];
+          const filaEliminada = () => {
             const eliminada = { textColor: [150, 150, 150], fontStyle: "italic" };
             body.push([
-              { content: "Extracción 1", styles: eliminada },
-              { content: "Eliminada (se pasa de 4 a 3 extracciones al día)", colSpan: 4, styles: eliminada }
+              { content: `Extracción ${trans.eliminada}`, styles: eliminada },
+              { content: `Eliminada (se pasa de ${trans.de} a ${trans.a} extracciones al día)`, colSpan: 4, styles: eliminada }
             ]);
-          }
-          // Misma extracción (nº dentro del día) del día anterior. Los cambios
-          // solo se marcan desde agosto de 2026. Ese día de transición cada
-          // extracción se compara con la siguiente del día anterior (la 2 con
-          // la 2, saltando la 1 eliminada), y al día siguiente la 1 se compara
-          // con la primera de la transición (la 2), y así sucesivamente.
+          };
+          // Número que se muestra para la extracción n-ésima (desde 0) del día
+          const numero = (n) => n + 1 + (trans && n + 1 >= trans.eliminada ? 1 : 0);
+          // Misma extracción (mismo número) del día anterior. Los cambios
+          // solo se marcan desde agosto de 2026. El día de transición cada
+          // extracción se compara con la de su mismo número del día anterior
+          // (saltando la eliminada), y al día siguiente se compara por orden
+          // con las de la transición, y así sucesivamente.
           const previas = fecha >= "2026-08-01" ? porDia[addDays(fecha, -1)] || [] : [];
+          const horaCambiada = DIAS_CAMBIO_HORA[fecha] || [];
           items.forEach((x, n) => {
-            const ant = previas[n + desfase];
+            if (trans && numero(n) === trans.eliminada + 1) filaEliminada();
+            const ant = previas[numero(n) - 1];
+            const cHora = horaCambiada.includes(numero(n));
+            const cDur = !!ant && cambia(x.duracion, ant.duracion);
+            const cPot = !!ant && cambia(x.potencia, ant.potencia);
+            if (cDur || cPot || cHora) diasCambio.add(fecha);
             body.push([
-              `Extracción ${n + 1 + desfase}`,
-              x.hora,
-              celda(tieneValor(x.duracion) ? formatDuracion(x.duracion) : "—", !!ant && cambia(x.duracion, ant.duracion)),
-              celda(tieneValor(x.potencia) ? String(x.potencia) : "—", !!ant && cambia(x.potencia, ant.potencia)),
+              `Extracción ${numero(n)}`,
+              celda(x.hora, cHora),
+              celda(tieneValor(x.duracion) ? formatDuracion(x.duracion) : "—", cDur),
+              celda(tieneValor(x.potencia) ? String(x.potencia) : "—", cPot),
               x.ml ? `${x.ml} ml${x.incompleto ? " (incompleta)" : ""}` : "—"
             ]);
           });
+          // Si la eliminada era la última (o faltan registros), va al final
+          if (trans && !items.some((_, n) => numero(n) > trans.eliminada)) filaEliminada();
         });
 
-        // Cada mes empieza en una página nueva, con su título
+        // Gráfica de línea del mes: eje X con todos los días del mes, eje Y
+        // con el total (ml) de cada día. Solo se unen los días con datos.
+        // Devuelve la Y donde termina la gráfica.
+        // Récord: el día con mayor total de todos los datos (si hay empate,
+        // el primero en alcanzarlo, que es cuando se batió).
+        const DORADO = [236, 100, 150], DORADO_TEXTO = [205, 60, 120]; // rosado
+        // Día con cantidad incompleta (mismo criterio que el "Total … (incompleta)"
+        // de la tabla): en la gráfica se deja vacío y no cuenta para el récord.
+        const diaIncompleto = (f) => porDia[f].some(x => x.incompleto || !(Number(x.ml) > 0));
+        const record = { fecha: null, total: 0 };
+        Object.keys(porDia).sort().forEach(f => {
+          if (diaIncompleto(f)) return;
+          const t = porDia[f].reduce((s, x) => s + (Number(x.ml) || 0), 0);
+          if (t > record.total) { record.fecha = f; record.total = t; }
+        });
+        const graficaMes = (anio, m, top) => {
+          const nDias = new Date(anio, m, 0).getDate();
+          const left = 70, right = 555, h = 150, bottom = top + h;
+          // [día, total] por cada día con datos; null en los incompletos para
+          // cortar ahí la línea (los días sin registros no la cortan)
+          const puntos = [];
+          for (let d = 1; d <= nDias; d++) {
+            const f = `${anio}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            if (!porDia[f]) continue;
+            puntos.push(diaIncompleto(f) ? null : [d, porDia[f].reduce((s, x) => s + (Number(x.ml) || 0), 0)]);
+          }
+          const validos = puntos.filter(Boolean);
+          // Escala Y "redonda": paso de 10, 20, 25, 50, 100… ml con ~5 líneas
+          const maxVal = Math.max(1, ...validos.map(p => p[1]));
+          const bruto = maxVal / 5;
+          const mag = Math.pow(10, Math.floor(Math.log10(bruto)));
+          const paso = [1, 2, 2.5, 5, 10].map(k => k * mag).find(k => k >= bruto);
+          const maxY = Math.ceil(maxVal / paso) * paso;
+          const xDe = (d) => left + (nDias === 1 ? 0 : (d - 1) * (right - left) / (nDias - 1));
+          const yDe = (v) => bottom - (v / maxY) * h;
+          // Cuadrícula y etiquetas del eje Y
+          doc.setFontSize(7);
+          doc.setTextColor(120);
+          doc.setLineWidth(0.5);
+          for (let v = 0; v <= maxY + 1e-9; v += paso) {
+            doc.setDrawColor(v === 0 ? 150 : 225);
+            doc.line(left, yDe(v), right, yDe(v));
+            doc.text(`${Math.round(v * 10) / 10}`, left - 6, yDe(v) + 2.5, { align: "right" });
+          }
+          doc.text("ml", left - 6, top - 8, { align: "right" });
+          // Etiquetas del eje X: todos los días del mes. Los días con cambio
+          // de duración o potencia van en violeta, negrita y con asterisco
+          // (el número sigue centrado en su marca y el * va a su derecha).
+          for (let d = 1; d <= nDias; d++) {
+            doc.setDrawColor(150);
+            doc.line(xDe(d), bottom, xDe(d), bottom + 3);
+            const f = `${anio}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            if (diasCambio.has(f)) {
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(...PRIMARIO);
+              doc.text(String(d), xDe(d), bottom + 12, { align: "center" });
+              doc.text("*", xDe(d) + doc.getTextWidth(String(d)) / 2 + 0.5, bottom + 12);
+              doc.setFont(undefined, "normal");
+              doc.setTextColor(120);
+            } else {
+              doc.text(String(d), xDe(d), bottom + 12, { align: "center" });
+            }
+          }
+          // Línea y puntos
+          doc.setDrawColor(...PRIMARIO);
+          doc.setFillColor(...PRIMARIO);
+          doc.setLineWidth(1.5);
+          for (let k = 1; k < puntos.length; k++) {
+            const a = puntos[k - 1], b = puntos[k];
+            if (a && b) doc.line(xDe(a[0]), yDe(a[1]), xDe(b[0]), yDe(b[1]));
+          }
+          validos.forEach(([d, v]) => doc.circle(xDe(d), yDe(v), 2, "F"));
+          // Récord absoluto (de todos los meses): punto dorado con etiqueta
+          if (record.fecha && record.fecha.slice(0, 7) === `${anio}-${String(m).padStart(2, "0")}`) {
+            const d = Number(record.fecha.slice(8, 10));
+            const rx = xDe(d), ry = yDe(record.total);
+            doc.setFillColor(...DORADO);
+            doc.setDrawColor(255);
+            doc.setLineWidth(1);
+            doc.circle(rx, ry, 4.5, "FD");
+            doc.setFontSize(8);
+            doc.setFont(undefined, "bold");
+            doc.setTextColor(...DORADO_TEXTO);
+            const align = rx > right - 60 ? "right" : rx < left + 60 ? "left" : "center";
+            // Sin símbolos fuera de la fuente estándar de jsPDF (p. ej. ★):
+            // se ven como otro carácter y estropean el espaciado del texto.
+            doc.text(`Récord: ${record.total} ml`, rx, ry - 9, { align });
+            doc.setFont(undefined, "normal");
+          }
+          doc.setLineWidth(0.2);
+          doc.setDrawColor(0);
+          return bottom + 14;
+        };
+
+        // Barra materna vs fórmula de las tomas del mes (como la de cada día
+        // en Tomas › Resumen). Devuelve la Y donde termina, o top si el mes
+        // no tiene tomas con cantidad.
+        const MATERNA = [224, 123, 168], FORMULA = [74, 163, 223];
+        // Título de cada sección dentro de un mes
+        const seccion = (texto, y) => {
+          doc.setFontSize(11);
+          doc.setFont(undefined, "bold");
+          doc.setTextColor(60, 50, 120);
+          doc.text(texto, 40, y);
+          doc.setFont(undefined, "normal");
+        };
+        const tomas = load(KEY_TOMAS).filter(Boolean);
+        const barraTomasMes = (mes, top) => {
+          const delMes = tomas.filter(t => t.fecha && t.fecha.slice(0, 7) === mes);
+          const mlM = delMes.reduce((s, t) => s + tomaMaterna(t), 0);
+          const mlF = delMes.reduce((s, t) => s + tomaFormula(t), 0);
+          const total = mlM + mlF;
+          if (!total) return top;
+          const pctM = Math.round((mlM / total) * 100), pctF = 100 - pctM;
+          const left = 40, ancho = 515, alto = 8, r = 4;
+          seccion("Tomas de leche materna vs fórmula", top);
+          const yb = top + 12;
+          const wM = ancho * pctM / 100;
+          // Fondo con el color de fórmula y, encima, la parte materna
+          doc.setFillColor(...(pctM === 100 ? MATERNA : FORMULA));
+          doc.roundedRect(left, yb, ancho, alto, r, r, "F");
+          if (pctM > 0 && pctM < 100) {
+            doc.setFillColor(...MATERNA);
+            doc.roundedRect(left, yb, wM, alto, r, r, "F");
+            if (wM > r) doc.rect(left + wM - r, yb, r, alto, "F"); // corte recto en la unión
+          }
+          // Leyenda: materna a la izquierda, fórmula a la derecha
+          const yl = yb + alto + 13;
+          doc.setFontSize(9);
+          doc.setTextColor(90);
+          doc.setFillColor(...MATERNA);
+          doc.circle(left + 3, yl - 3, 3, "F");
+          doc.text(`Materna ${pctM}% · ${mlM} ml`, left + 10, yl);
+          const txtF = `Fórmula ${pctF}% · ${mlF} ml`;
+          doc.setFillColor(...FORMULA);
+          doc.circle(left + ancho - doc.getTextWidth(txtF) - 7, yl - 3, 3, "F");
+          doc.text(txtF, left + ancho, yl, { align: "right" });
+          return yl + 6;
+        };
+
+        // Cada mes empieza en una página nueva, con su título, la barra
+        // materna/fórmula y su gráfica
         Object.keys(porMes).sort().forEach((mes, i) => {
-          let y = 112;
-          if (i > 0) { doc.addPage(); y = 50; }
+          const y = 64;
+          if (i > 0) doc.addPage();
           const [anio, m] = mes.split("-").map(Number);
-          doc.setFontSize(13);
+          doc.setFontSize(24);
+          doc.setFont(undefined, "bold");
           doc.setTextColor(60, 50, 120);
           doc.text(`${MESES_LARGO[m - 1]} ${anio}`, 40, y);
+          doc.setFont(undefined, "normal");
+          // Secciones separadas por 40pt: barra materna/fórmula (si hay
+          // tomas), gráfica de línea e historial
+          const ySec1 = y + 40;
+          const finBarra = barraTomasMes(mes, ySec1);
+          const ySec2 = finBarra === ySec1 ? ySec1 : finBarra + 40;
+          seccion("Cantidad extraída por día", ySec2);
+          const finGrafica = graficaMes(anio, m, ySec2 + 32);
+          // Nota del asterisco debajo de la gráfica y al final de la tabla
+          const NOTA = "* Cambio de hora, duración o potencia respecto a la misma extracción del día anterior.";
+          // Solo si el mes tiene algún día marcado con * (en tabla o gráfica)
+          const hayAsteriscos = [...diasCambio].some(f => f.slice(0, 7) === mes);
+          const nota = (yN) => {
+            if (!hayAsteriscos) return;
+            doc.setFontSize(9);
+            doc.setTextColor(110);
+            doc.text(NOTA, 40, yN);
+          };
+          nota(finGrafica + 18); // mismo hueco que entre la tabla y su nota
+          const ySec3 = finGrafica + 58;
+          seccion("Historial de extracciones", ySec3);
           doc.autoTable({
-            startY: y + 12,
+            startY: ySec3 + 10,
             head: [["Extracción", "Hora", "Duración", "Potencia", "Cantidad"]],
             body: porMes[mes],
             styles: { fontSize: 10, cellPadding: 6 },
             headStyles: { fillColor: PRIMARIO },
             margin: { left: 40, right: 40 }
           });
+          if (hayAsteriscos) {
+            let yNota = doc.lastAutoTable.finalY + 18;
+            if (yNota > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); yNota = 50; }
+            nota(yNota);
+          }
         });
         const url = URL.createObjectURL(doc.output("blob"));
         if (win) win.location.href = url;
@@ -4282,7 +4568,14 @@
     // Días que faltan para el último día de extracciones. Ambas fechas se
     // interpretan en UTC: la resta no se ve afectada por el cambio de hora.
     function diasHastaFinExtra() {
-      return Math.round((Date.parse(FECHA_FIN_EXTRA) - Date.parse(todayStr())) / 86400000);
+      return Math.round((Date.parse(fechaFinExtra()) - Date.parse(todayStr())) / 86400000);
+    }
+
+    // Último día de extracciones: el definido en el modal de ajustes del widget
+    // o, si no hay ninguno, el valor por defecto.
+    function fechaFinExtra() {
+      const f = load(KEY_EXTRA_FIN)[0];
+      return typeof f === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : FECHA_FIN_EXTRA_DEF;
     }
 
     async function esUsuariaConfeti() {
@@ -4370,6 +4663,25 @@
           + (resto ? ` y ${resto} ${resto === 1 ? "día" : "días"}` : "");
       }
     }
+
+    // Modal de ajustes de la cuenta atrás: fecha final de las extracciones.
+    // Cada cambio se guarda al momento (y se sincroniza), como el horario.
+    const eFinModal = document.getElementById("e-fin-modal");
+    const eFinFecha = document.getElementById("e-fin-fecha");
+    document.getElementById("e-fin-cfg-btn").addEventListener("click", () => {
+      eFinFecha.value = fechaFinExtra();
+      eFinModal.hidden = false;
+    });
+    eFinFecha.addEventListener("change", () => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(eFinFecha.value)) return;
+      save(KEY_EXTRA_FIN, [eFinFecha.value]);
+      updateExtraFin();
+    });
+    document.getElementById("e-fin-close").addEventListener("click", () => { eFinModal.hidden = true; });
+    eFinModal.addEventListener("click", (e) => { if (e.target === eFinModal) eFinModal.hidden = true; });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !eFinModal.hidden) eFinModal.hidden = true;
+    });
 
     // Tarjeta de resumen de un día de extracciones
     function extraDiaCardHTML(fecha, items, clickable) {
@@ -4710,23 +5022,36 @@
       paTipoCaca.focus();
     }
 
+    let panalWeek = null; // inicio de la semana mostrada en el historial paginado
+
     function renderPanal() {
       const items = load(KEY_PANALES);
+      const pager = document.getElementById("pa-pager");
       if (items.length === 0) {
         paList.innerHTML = '<div class="empty">Aún no hay pañales registrados.</div>';
+        if (pager) pager.innerHTML = "";
         return;
       }
       items.sort((a, b) => b.fecha.localeCompare(a.fecha));
 
       const groups = {};
       for (const x of items) (groups[x.fecha] = groups[x.fecha] || []).push(x);
+      const dias = Object.keys(groups);
 
-      // Una tarjeta por día, con un item por cada caca/pis dentro
+      // Semanas con datos (por su fecha de inicio), de más reciente a más antigua
+      const semanas = [...new Set(dias.map(weekStart))].sort((a, b) => b.localeCompare(a));
+      if (!semanas.includes(panalWeek)) panalWeek = semanas[0];
+      renderResumenSemanaPager("pa-pager", semanas, semanas.indexOf(panalWeek));
+
+      // Una tarjeta por día de la semana seleccionada, con un item por cada caca/pis dentro
+      const diasSemana = dias
+        .filter(f => weekStart(f) === panalWeek)
+        .sort((a, b) => b.localeCompare(a));
       let html = "";
-      for (const fecha of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
+      for (const fecha of diasSemana) {
         const its = groups[fecha];
         html += `<div class="resumen-dia">
-          <div class="resumen-fecha">${formatDayMes(fecha)}</div>`;
+          <div class="resumen-fecha">${formatDayFull(fecha)}</div>`;
         html += `<div class="panal-tiles">`;
         // Primero todas las cacas del día, luego todos los pis
         for (const x of its) {
@@ -4760,6 +5085,7 @@
         items.push(Object.assign({ id: newId() }, datos));
         save(KEY_PANALES, items);
       }
+      panalWeek = weekStart(datos.fecha); // mostrar la semana del pañal creado/editado
       closePanalModal();
       renderPanal();
       updateStatus();
@@ -4776,6 +5102,20 @@
     paList.addEventListener("click", (e) => {
       const tile = e.target.closest(".panal-tile");
       if (tile) startPanalEdit(tile.dataset.id, tile.dataset.tipo);
+    });
+
+    // Paginador semanal del historial
+    document.getElementById("pa-pager").addEventListener("click", (e) => {
+      const btn = e.target.closest(".pager-btn");
+      if (!btn || btn.disabled) return;
+      const semanas = [...new Set(load(KEY_PANALES).map(x => weekStart(x.fecha)))].sort((a, b) => b.localeCompare(a));
+      let idx = semanas.indexOf(panalWeek);
+      if (idx < 0) idx = 0;
+      idx = btn.dataset.dir === "older"
+        ? Math.min(idx + 1, semanas.length - 1)
+        : Math.max(idx - 1, 0);
+      panalWeek = semanas[idx];
+      renderPanal();
     });
 
     // Eliminar desde el modal de edición
@@ -4894,7 +5234,7 @@
       for (const fecha of diasSemana) {
         const its = groups[fecha];
         html += `<div class="resumen-dia">
-          <div class="resumen-fecha">${formatDayMes(fecha)}</div>
+          <div class="resumen-fecha">${formatDayFull(fecha)}</div>
           <div class="panal-tiles">`;
         for (const x of its) {
           const ico = x.jabon === true ? "🧼" : x.jabon === false ? "🚿" : "🛁";
