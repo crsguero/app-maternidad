@@ -1068,6 +1068,56 @@
       margin: 24px 0;
     }
     .pager:empty { display: none; }
+
+    /* Modal de gráficas de extracciones (un mes cada vez) */
+    .graf-box { max-width: 640px; }
+    /* Cabecera de la gráfica: título a la izquierda, selector de mes a la derecha */
+    .graf-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+    .graf-head h3 { margin: 0; }
+    /* Selector de mes propio (el nativo decide solo si se abre hacia arriba) */
+    .graf-mes { position: relative; flex-shrink: 0; }
+    .graf-mes-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: #fbfaff; color: var(--text);
+      font: inherit; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .graf-mes-btn:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124, 108, 224, 0.15); }
+    .graf-mes-btn .flecha { font-size: 0.7rem; color: var(--muted); }
+    .graf-mes-list {
+      position: absolute; top: calc(100% + 4px); right: 0; z-index: 5;
+      min-width: 100%; max-height: 240px; overflow-y: auto;
+      margin: 0; padding: 4px; list-style: none;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(60, 40, 140, 0.15);
+    }
+    .graf-mes-list[hidden] { display: none; }
+    .graf-mes-list button {
+      display: block; width: 100%; padding: 8px 10px;
+      border: none; border-radius: 7px; background: none;
+      font: inherit; font-size: 0.9rem; color: var(--text); text-align: left; white-space: nowrap;
+      cursor: pointer;
+    }
+    .graf-mes-list button:hover { background: #f3f1fb; }
+    .graf-mes-list button.sel { background: #efebfb; color: var(--primary-dark); font-weight: 700; }
+    .graf-sec { margin: 0 0 24px; }
+    .graf-sec:last-child { margin-bottom: 0; }
+    .graf-sec h3 { margin: 0 0 10px; font-size: 0.95rem; color: var(--primary-dark); }
+    .graf-svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .graf-svg .g-grid { stroke: #e1ddef; stroke-width: 1; }
+    .graf-svg .g-axis { stroke: #b4b0c4; stroke-width: 1; }
+    .graf-svg text { font-size: 10px; fill: var(--muted); font-family: inherit; }
+    .graf-svg text.g-cambio { fill: var(--primary); font-weight: 700; }
+    .graf-svg .g-linea { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .graf-svg .g-punto { fill: var(--primary); cursor: pointer; }
+    .graf-svg .g-punto.sel { stroke: #fff; stroke-width: 2; }
+    .graf-svg .g-record { fill: #ec6496; stroke: #fff; stroke-width: 1.5; cursor: pointer; }
+    .graf-svg text.g-record-txt { fill: #cd3c78; font-weight: 700; font-size: 11px; }
+    .graf-svg .g-hit { fill: transparent; cursor: pointer; }
+    .graf-detalle { min-height: 1.3em; margin: 8px 0 0; font-size: 0.85rem; color: var(--text); text-align: center; }
+    .graf-nota { margin: 10px 0 0; font-size: 0.78rem; color: var(--muted); }
     .pager-btn {
       display: inline-flex;
       align-items: center;
@@ -1770,6 +1820,7 @@
         <h2 class="panel-title">💧 Extracciones</h2>
         <div class="toolbar-btns">
           <button type="button" class="info-btn" id="e-export-btn" title="Exportar informe (PDF)" aria-label="Exportar informe de extracciones en PDF">📄</button>
+          <button type="button" class="info-btn" id="e-graf-btn" title="Gráficas del mes" aria-label="Ver las gráficas de extracciones por mes">📈</button>
           <button type="button" class="info-btn" id="e-info-btn" title="Horario de extracciones" aria-label="Horario de extracciones">ℹ️</button>
         </div>
       </div>
@@ -1781,6 +1832,17 @@
             <button type="button" class="section-menu-close" id="e-info-close" aria-label="Cerrar">✕</button>
           </div>
           <div class="horas-list" id="e-horas-list"></div>
+        </div>
+      </div>
+
+      <!-- Modal: gráficas del informe PDF, un mes cada vez -->
+      <div class="modal-overlay" id="e-graf-modal" hidden>
+        <div class="modal-box card graf-box">
+          <div class="info-head">
+            <h2>Gráficas</h2>
+            <button type="button" class="section-menu-close" id="e-graf-close" aria-label="Cerrar">✕</button>
+          </div>
+          <div id="e-graf-body"></div>
         </div>
       </div>
 
@@ -2641,7 +2703,7 @@
         </div>
       </div>
 
-      <!-- Modal: tareas asociadas a cada una de las 3 extracciones del día -->
+      <!-- Modal: tareas asociadas a cada una de las 2 extracciones del día -->
       <div class="modal-overlay" id="te-modal" hidden>
         <div class="modal-box card">
           <div class="info-head">
@@ -2777,9 +2839,10 @@
     const KEY_DIA_APLICADA = "tareas-dia-aplicada"; // último día en que se copió la plantilla "Durante el día"
     const KEY_TOMA_CFG = "tomas-config"; // ajustes de tomas: peso y cantidades min/max
     const KEY_NAV_VIS = "nav-ocultas"; // pestañas de navegación ocultas (array de nombres de panel)
-    const KEY_EXTRA_HORAS = "extracciones-horario"; // horas ("HH:MM") de las 3 extracciones del día
-    const HORAS_EXTRA_DEF = ["8:30", "15:00", "21:30"]; // horario por defecto
+    const KEY_EXTRA_HORAS = "extracciones-horario"; // horas ("HH:MM") de las 2 extracciones del día
+    const HORAS_EXTRA_DEF = ["8:30", "21:30"]; // horario por defecto
     const FECHA_TRES_EXTRA = "2026-10-28"; // día en que se eliminó la antigua Extracción 1 (de 4 a 3)
+    const FECHA_DOS_EXTRA = "2026-11-17"; // primer día sin la antigua Extracción 2 (de 3 a 2)
     const FECHA_FIN_EXTRA_DEF = "2026-12-04"; // último día de extracciones si no se ha definido otro
     const KEY_EXTRA_FIN = "extracciones-fecha-fin"; // ["AAAA-MM-DD"]: último día de extracciones (cuenta atrás)
     const KEY_UI_CONFETI = "ui-confeti-dia"; // último día en que se lanzó el confeti en este dispositivo
@@ -2984,7 +3047,7 @@
           : fbOnline
             ? "Sincronizado en la nube"
             : `Sin conexión${pend ? ` · ${pend} cambio${pend === 1 ? "" : "s"} pendiente${pend === 1 ? "" : "s"}` : ""}`;
-        el.textContent = `✓ v111 ·${sync} · ${nT} tomas · ${nE} extracciones`;
+        el.textContent = `✓ v117 ·${sync} · ${nT} tomas · ${nE} extracciones`;
         el.className = fbReady && !fbOnline ? "status warn" : "status ok";
       } else {
         el.textContent = "⚠️ No se pudo abrir el almacenamiento del navegador.";
@@ -4014,29 +4077,15 @@
         extras.forEach(x => { (porDia[x.fecha] = porDia[x.fecha] || []).push(x); });
         const grupo = { fillColor: [236, 232, 252], fontStyle: "bold", textColor: [60, 50, 120] };
         const cambiado = { fontStyle: "bold", textColor: PRIMARIO };
-        const cambia = (a, b) => tieneValor(a) && tieneValor(b) && Number(a) !== Number(b);
         // Celda de duración/potencia: con * en negrita y color primario si
         // cambió respecto a la misma extracción del día anterior
         const celda = (texto, marcado) => marcado ? { content: texto + " *", styles: cambiado } : texto;
         const porMes = {}; // "YYYY-MM" → filas de la tabla de ese mes
         // fechas con algún cambio de hora, duración o potencia (*), más los
-        // días de transición (TRANSICIONES), que se marcan solo en la gráfica
+        // días de transición (TRANSICIONES_EXTRA), que se marcan solo en la gráfica
         const diasCambio = new Set();
-        // Días en que se eliminó una de las extracciones diarias:
-        // fecha → { eliminada: nº que desaparece, de: nº antes, a: nº después }
-        const TRANSICIONES = {
-          "2026-09-18": { eliminada: 4, de: 5, a: 4 },
-          [FECHA_TRES_EXTRA]: { eliminada: 1, de: 4, a: 3 }
-        };
         // Los días de transición se marcan siempre como día con cambio en la gráfica
-        Object.keys(TRANSICIONES).forEach(f => diasCambio.add(f));
-        // Días en que se cambió la hora de las extracciones (marcados a mano:
-        // las horas varían un poco cada día y no se detectan solas)
-        // fecha → números de extracción (tal como salen en la tabla) cuya hora cambió
-        const DIAS_CAMBIO_HORA = {
-          "2026-09-07": [4], "2026-09-10": [4], "2026-09-16": [4],
-          "2026-10-18": [1], "2026-10-22": [1], "2026-10-26": [1],
-          "2026-11-10": [2], "2026-11-12": [2], "2026-11-14": [2] };
+        Object.keys(TRANSICIONES_EXTRA).forEach(f => diasCambio.add(f));
         // porDia conserva todos los días (para comparar con el día anterior
         // aunque sea de un mes no seleccionado y para el récord absoluto),
         // pero solo se generan las tablas de los meses elegidos.
@@ -4050,10 +4099,9 @@
             { content: `Total: ${total} ml${incompleta ? " (incompleta)" : ""}`, styles: grupo }
           ]);
           // Los días en que se eliminó una extracción se mantiene la
-          // numeración antigua: la eliminada figura como tal en su sitio y las
-          // siguientes conservan su número (p. ej. el 28 oct la 1 eliminada y
-          // las del día son la 2, la 3 y la 4).
-          const trans = TRANSICIONES[fecha];
+          // numeración antigua (ver cambiosDiaExtra): la eliminada figura como
+          // tal en su sitio y las siguientes conservan su número.
+          const { trans, filas } = cambiosDiaExtra(fecha, porDia);
           const filaEliminada = () => {
             const eliminada = { textColor: [150, 150, 150], fontStyle: "italic" };
             body.push([
@@ -4061,24 +4109,11 @@
               { content: `Eliminada (se pasa de ${trans.de} a ${trans.a} extracciones al día)`, colSpan: 4, styles: eliminada }
             ]);
           };
-          // Número que se muestra para la extracción n-ésima (desde 0) del día
-          const numero = (n) => n + 1 + (trans && n + 1 >= trans.eliminada ? 1 : 0);
-          // Misma extracción (mismo número) del día anterior. Los cambios
-          // solo se marcan desde agosto de 2026. El día de transición cada
-          // extracción se compara con la de su mismo número del día anterior
-          // (saltando la eliminada), y al día siguiente se compara por orden
-          // con las de la transición, y así sucesivamente.
-          const previas = fecha >= "2026-08-01" ? porDia[addDays(fecha, -1)] || [] : [];
-          const horaCambiada = DIAS_CAMBIO_HORA[fecha] || [];
-          items.forEach((x, n) => {
-            if (trans && numero(n) === trans.eliminada + 1) filaEliminada();
-            const ant = previas[numero(n) - 1];
-            const cHora = horaCambiada.includes(numero(n));
-            const cDur = !!ant && cambia(x.duracion, ant.duracion);
-            const cPot = !!ant && cambia(x.potencia, ant.potencia);
+          filas.forEach(({ x, num, cHora, cDur, cPot }) => {
+            if (trans && num === trans.eliminada + 1) filaEliminada();
             if (cDur || cPot || cHora) diasCambio.add(fecha);
             body.push([
-              `Extracción ${numero(n)}`,
+              `Extracción ${num}`,
               celda(x.hora, cHora),
               celda(tieneValor(x.duracion) ? formatDuracion(x.duracion) : "—", cDur),
               celda(tieneValor(x.potencia) ? String(x.potencia) : "—", cPot),
@@ -4086,7 +4121,7 @@
             ]);
           });
           // Si la eliminada era la última (o faltan registros), va al final
-          if (trans && !items.some((_, n) => numero(n) > trans.eliminada)) filaEliminada();
+          if (trans && !filas.some(f => f.num > trans.eliminada)) filaEliminada();
         });
 
         // Gráfica de línea del mes: eje X con todos los días del mes, eje Y
@@ -4097,13 +4132,8 @@
         const DORADO = [236, 100, 150], DORADO_TEXTO = [205, 60, 120]; // rosado
         // Día con cantidad incompleta (mismo criterio que el "Total … (incompleta)"
         // de la tabla): en la gráfica se deja vacío y no cuenta para el récord.
-        const diaIncompleto = (f) => porDia[f].some(x => x.incompleto || !(Number(x.ml) > 0));
-        const record = { fecha: null, total: 0 };
-        Object.keys(porDia).sort().forEach(f => {
-          if (diaIncompleto(f)) return;
-          const t = porDia[f].reduce((s, x) => s + (Number(x.ml) || 0), 0);
-          if (t > record.total) { record.fecha = f; record.total = t; }
-        });
+        const diaIncompleto = (f) => diaExtraIncompleto(porDia[f]);
+        const record = recordExtra(porDia);
         const graficaMes = (anio, m, top) => {
           const nDias = new Date(anio, m, 0).getDate();
           const left = 70, right = 555, h = 150, bottom = top + h;
@@ -4282,6 +4312,279 @@
         showError("al exportar el informe: " + (e && e.message));
       }
     });
+
+    /* ---- Datos compartidos por el informe PDF y el modal de gráficas ---- */
+
+    // Días en que se eliminó una de las extracciones diarias:
+    // fecha → { eliminada: nº que desaparece, de: nº antes, a: nº después }
+    const TRANSICIONES_EXTRA = {
+      "2026-09-18": { eliminada: 4, de: 5, a: 4 },
+      [FECHA_TRES_EXTRA]: { eliminada: 1, de: 4, a: 3 },
+      [FECHA_DOS_EXTRA]: { eliminada: 2, de: 3, a: 2 }
+    };
+    // Días en que se cambió la hora de las extracciones (marcados a mano:
+    // las horas varían un poco cada día y no se detectan solas)
+    // fecha → números de extracción (tal como salen en la tabla) cuya hora cambió
+    const DIAS_CAMBIO_HORA_EXTRA = {
+      "2026-09-07": [4], "2026-09-10": [4], "2026-09-16": [4],
+      "2026-10-18": [1], "2026-10-22": [1], "2026-10-26": [1],
+      "2026-11-10": [2], "2026-11-12": [2], "2026-11-14": [2], "2026-11-16": [2] };
+
+    // Extracciones agrupadas por día, cada día ordenado por hora
+    function extrasPorDia() {
+      const porDia = {};
+      load(KEY_EXTRA).filter(x => x && x.fecha)
+        .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora))
+        .forEach(x => { (porDia[x.fecha] = porDia[x.fecha] || []).push(x); });
+      return porDia;
+    }
+
+    // Número que se muestra para cada extracción de un día y qué cambió
+    // (hora, duración, potencia) respecto a la misma extracción del día
+    // anterior. Los días de transición se mantiene la numeración antigua
+    // (p. ej. el 28 oct la 1 eliminada y las del día son la 2, la 3 y la 4).
+    // Los cambios solo se marcan desde agosto de 2026. El día de transición
+    // cada extracción se compara con la de su mismo número del día anterior
+    // (saltando la eliminada), y al día siguiente se compara por orden con
+    // las de la transición, y así sucesivamente.
+    function cambiosDiaExtra(fecha, porDia) {
+      const tieneValor = (v) => v !== undefined && v !== null && v !== "";
+      const cambia = (a, b) => tieneValor(a) && tieneValor(b) && Number(a) !== Number(b);
+      const trans = TRANSICIONES_EXTRA[fecha];
+      const numero = (n) => n + 1 + (trans && n + 1 >= trans.eliminada ? 1 : 0);
+      const previas = fecha >= "2026-08-01" ? porDia[addDays(fecha, -1)] || [] : [];
+      const horaCambiada = DIAS_CAMBIO_HORA_EXTRA[fecha] || [];
+      const filas = (porDia[fecha] || []).map((x, n) => {
+        const num = numero(n);
+        const ant = previas[num - 1];
+        return {
+          x, num,
+          cHora: horaCambiada.includes(num),
+          cDur: !!ant && cambia(x.duracion, ant.duracion),
+          cPot: !!ant && cambia(x.potencia, ant.potencia)
+        };
+      });
+      return { trans, filas };
+    }
+
+    // Fechas marcadas con * en la gráfica: transiciones y días con algún
+    // cambio de hora, duración o potencia
+    function diasCambioExtra(porDia) {
+      const set = new Set(Object.keys(TRANSICIONES_EXTRA));
+      Object.keys(porDia).forEach(f => {
+        if (cambiosDiaExtra(f, porDia).filas.some(r => r.cHora || r.cDur || r.cPot)) set.add(f);
+      });
+      return set;
+    }
+
+    // Día con cantidad incompleta: en la gráfica se deja vacío y no cuenta para el récord
+    const diaExtraIncompleto = (items) => items.some(x => x.incompleto || !(Number(x.ml) > 0));
+    const totalDiaExtra = (items) => items.reduce((s, x) => s + (Number(x.ml) || 0), 0);
+
+    // Récord: el día con mayor total de todos los datos (si hay empate, el
+    // primero en alcanzarlo, que es cuando se batió)
+    function recordExtra(porDia) {
+      const record = { fecha: null, total: 0 };
+      Object.keys(porDia).sort().forEach(f => {
+        if (diaExtraIncompleto(porDia[f])) return;
+        const t = totalDiaExtra(porDia[f]);
+        if (t > record.total) { record.fecha = f; record.total = t; }
+      });
+      return record;
+    }
+
+    /* ---- Modal de gráficas: las mismas del PDF, un mes cada vez ---- */
+    const eGrafModal = document.getElementById("e-graf-modal");
+    const eGrafBody = document.getElementById("e-graf-body");
+    let grafMeses = [];  // "YYYY-MM" con extracciones, de más antiguo a más reciente
+    let grafIdx = 0;     // mes que se está viendo
+
+    // "2026-11" → "Nov 2026"
+    const mesCorto = (mes) => {
+      const [anio, m] = mes.split("-").map(Number);
+      return `${MESES_NOMBRE[m - 1].slice(0, 3)} ${anio}`;
+    };
+
+    // Selector de mes (a la derecha del título de la gráfica). Es propio en
+    // vez de un <select> para que la lista se abra siempre hacia abajo.
+    // Meses del más antiguo al más reciente, para saltar directamente a cualquiera.
+    function grafSelectorHTML() {
+      const actual = grafMeses[grafIdx];
+      return `<div class="graf-mes">
+        <button type="button" class="graf-mes-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Mes: ${mesCorto(actual)}">
+          ${mesCorto(actual)} <span class="flecha" aria-hidden="true">▼</span>
+        </button>
+        <ul class="graf-mes-list" role="listbox" hidden>
+          ${grafMeses.map((mes, i) => `<li><button type="button" role="option" data-idx="${i}"${i === grafIdx ? ' class="sel" aria-selected="true"' : ""}>${mesCorto(mes)}</button></li>`).join("")}
+        </ul>
+      </div>`;
+    }
+    function abrirGrafMes(abrir) {
+      const list = eGrafBody.querySelector(".graf-mes-list");
+      const btn = eGrafBody.querySelector(".graf-mes-btn");
+      if (!list || !btn) return;
+      list.hidden = !abrir;
+      btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+      if (abrir) {
+        // Deja visible el mes seleccionado si la lista tiene scroll
+        const sel = list.querySelector("button.sel");
+        if (sel) list.scrollTop = Math.max(0, sel.offsetTop - list.clientHeight / 2);
+      }
+    }
+    const grafMesAbierto = () => {
+      const list = eGrafBody.querySelector(".graf-mes-list");
+      return !!list && !list.hidden;
+    };
+
+    // Gráfica de línea del mes en SVG, con el mismo criterio que la del PDF:
+    // eje X con todos los días del mes, eje Y con el total (ml) de cada día,
+    // días incompletos vacíos (cortan la línea), días con cambio en violeta
+    // con *, y el récord absoluto en rosa. Se dibuja al ancho real del modal
+    // para que el texto tenga siempre el mismo tamaño.
+    function grafLineaHTML(anio, m, porDia, diasCambio, record) {
+      const mesStr = `${anio}-${String(m).padStart(2, "0")}`;
+      const nDias = new Date(anio, m, 0).getDate();
+      const W = Math.max(280, Math.round(eGrafBody.clientWidth || 440));
+      const left = 36, right = W - 10, top = 26, h = 170, bottom = top + h, H = bottom + 30;
+      const fechaDe = (d) => `${mesStr}-${String(d).padStart(2, "0")}`;
+      const puntos = [];
+      for (let d = 1; d <= nDias; d++) {
+        const items = porDia[fechaDe(d)];
+        if (!items) continue;
+        puntos.push(diaExtraIncompleto(items) ? null : [d, totalDiaExtra(items)]);
+      }
+      const validos = puntos.filter(Boolean);
+      // Escala Y fija hasta 1000 ml en todos los meses (para poder
+      // compararlos), con líneas cada 200 ml. Si algún día supera los
+      // 1000 ml, la escala se alarga para que quepa.
+      const maxVal = Math.max(1, ...validos.map(p => p[1]));
+      const paso = 200;
+      const maxY = Math.max(1000, Math.ceil(maxVal / paso) * paso);
+      const xDe = (d) => left + (nDias === 1 ? 0 : (d - 1) * (right - left) / (nDias - 1));
+      const yDe = (v) => bottom - (v / maxY) * h;
+      const r1 = (n) => Math.round(n * 10) / 10;
+      let svg = "";
+      // Cuadrícula y eje Y
+      for (let v = 0; v <= maxY + 1e-9; v += paso) {
+        svg += `<line class="${v === 0 ? "g-axis" : "g-grid"}" x1="${left}" y1="${r1(yDe(v))}" x2="${right}" y2="${r1(yDe(v))}"/>`;
+        svg += `<text x="${left - 5}" y="${r1(yDe(v) + 3.5)}" text-anchor="end">${Math.round(v * 10) / 10}</text>`;
+      }
+      svg += `<text x="${left - 5}" y="${top - 12}" text-anchor="end">ml</text>`;
+      // Eje X: todos los días si caben; si no, los impares. Los días con
+      // cambio van en violeta con *; si su número no cabe, solo el *.
+      const todos = (right - left) / Math.max(1, nDias - 1) >= 15;
+      for (let d = 1; d <= nDias; d++) {
+        const x = r1(xDe(d));
+        svg += `<line class="g-axis" x1="${x}" y1="${bottom}" x2="${x}" y2="${bottom + 3}"/>`;
+        const cambio = diasCambio.has(fechaDe(d));
+        const conNum = todos || d % 2 === 1;
+        if (conNum) {
+          svg += `<text x="${x}" y="${bottom + 15}" text-anchor="middle"${cambio ? ' class="g-cambio"' : ""}>${d}</text>`;
+          if (cambio) svg += `<text x="${x + (d < 10 ? 4 : 7)}" y="${bottom + 15}" class="g-cambio">*</text>`;
+        } else if (cambio) {
+          svg += `<text x="${x}" y="${bottom + 15}" text-anchor="middle" class="g-cambio">*</text>`;
+        }
+      }
+      // Línea (cortada en los días incompletos) y puntos
+      let tramo = [];
+      const tramos = [];
+      puntos.forEach(p => {
+        if (p) tramo.push(p);
+        else { if (tramo.length) tramos.push(tramo); tramo = []; }
+      });
+      if (tramo.length) tramos.push(tramo);
+      tramos.filter(t => t.length > 1).forEach(t => {
+        svg += `<polyline class="g-linea" points="${t.map(([d, v]) => `${r1(xDe(d))},${r1(yDe(v))}`).join(" ")}"/>`;
+      });
+      const esRecord = (d) => record.fecha === fechaDe(d);
+      validos.forEach(([d, v]) => {
+        if (!esRecord(d)) svg += `<circle class="g-punto" data-dia="${d}" cx="${r1(xDe(d))}" cy="${r1(yDe(v))}" r="3.5"/>`;
+      });
+      // Récord absoluto (de todos los meses): punto rosa con etiqueta
+      if (record.fecha && record.fecha.slice(0, 7) === mesStr) {
+        const d = Number(record.fecha.slice(8, 10));
+        const rx = r1(xDe(d)), ry = r1(yDe(record.total));
+        const anchor = rx > right - 60 ? "end" : rx < left + 60 ? "start" : "middle";
+        svg += `<circle class="g-record" data-dia="${d}" cx="${rx}" cy="${ry}" r="5.5"/>`;
+        svg += `<text class="g-record-txt" x="${rx}" y="${ry - 10}" text-anchor="${anchor}">Récord: ${record.total} ml</text>`;
+      }
+      // Zonas táctiles amplias para tocar cada punto en el móvil
+      validos.forEach(([d, v]) => {
+        svg += `<circle class="g-hit" data-dia="${d}" cx="${r1(xDe(d))}" cy="${r1(yDe(v))}" r="12"/>`;
+      });
+      return `<svg class="graf-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Cantidad extraída por día">${svg}</svg>`;
+    }
+
+    function renderGraficas() {
+      if (!grafMeses.length) return;
+      const mes = grafMeses[grafIdx];
+      const [anio, m] = mes.split("-").map(Number);
+      const porDia = extrasPorDia();
+      const diasCambio = diasCambioExtra(porDia);
+      const record = recordExtra(porDia);
+      const hayAsteriscos = [...diasCambio].some(f => f.slice(0, 7) === mes);
+      // La nota del * se incluye siempre (oculta si el mes no tiene ninguno)
+      // para que el modal tenga el mismo alto en todos los meses
+      eGrafBody.innerHTML =
+        `<div class="graf-sec">
+          <div class="graf-head">
+            <h3>Cantidad extraída por día</h3>
+            ${grafSelectorHTML()}
+          </div>
+          <div class="graf-chart"></div>
+          <p class="graf-detalle" id="e-graf-detalle"></p>
+          <p class="graf-nota"${hayAsteriscos ? "" : ' style="visibility:hidden" aria-hidden="true"'}>* Cambio de hora, duración o potencia respecto a la misma extracción del día anterior.</p>
+        </div>`;
+      // El SVG se genera una vez el contenedor ya tiene su ancho real
+      eGrafBody.querySelector(".graf-chart").innerHTML = grafLineaHTML(anio, m, porDia, diasCambio, record);
+    }
+
+    // Al tocar un punto: fecha y total de ese día debajo de la gráfica
+    eGrafBody.addEventListener("click", (e) => {
+      // Selector de mes: abrir/cerrar la lista y elegir un mes
+      if (e.target.closest(".graf-mes-btn")) { abrirGrafMes(!grafMesAbierto()); return; }
+      const opcion = e.target.closest(".graf-mes-list button");
+      if (opcion) {
+        grafIdx = Number(opcion.dataset.idx);
+        renderGraficas();
+        return;
+      }
+      if (grafMesAbierto()) abrirGrafMes(false); // un toque fuera de la lista la cierra
+      const p = e.target.closest("[data-dia]");
+      if (!p) return;
+      const mes = grafMeses[grafIdx];
+      const fecha = `${mes}-${String(p.dataset.dia).padStart(2, "0")}`;
+      const items = extrasPorDia()[fecha] || [];
+      const n = items.length;
+      eGrafBody.querySelectorAll(".g-punto.sel").forEach(c => c.classList.remove("sel"));
+      const punto = eGrafBody.querySelector(`.g-punto[data-dia="${p.dataset.dia}"]`);
+      if (punto) punto.classList.add("sel");
+      const det = document.getElementById("e-graf-detalle");
+      if (det) det.textContent = `${formatDayMes(fecha)} · ${totalDiaExtra(items)} ml · ${n} ${n === 1 ? "extracción" : "extracciones"}`;
+    });
+    document.getElementById("e-graf-btn").addEventListener("click", () => {
+      const meses = new Set(load(KEY_EXTRA).filter(x => x && x.fecha).map(x => x.fecha.slice(0, 7)));
+      if (!meses.size) { alert("Aún no hay extracciones registradas."); return; }
+      grafMeses = [...meses].sort();
+      grafIdx = grafMeses.length - 1; // empieza en el mes más reciente
+      eGrafModal.hidden = false;
+      renderGraficas();
+    });
+    const cerrarGrafModal = () => { eGrafModal.hidden = true; };
+    document.getElementById("e-graf-close").addEventListener("click", cerrarGrafModal);
+    eGrafModal.addEventListener("click", (e) => {
+      if (e.target === eGrafModal) cerrarGrafModal();
+      // Toque en el modal fuera del cuerpo (título, márgenes): cierra la lista de meses
+      else if (!eGrafBody.contains(e.target) && grafMesAbierto()) abrirGrafMes(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || eGrafModal.hidden) return;
+      // Escape cierra primero la lista de meses y, si no está abierta, el modal
+      if (grafMesAbierto()) abrirGrafMes(false);
+      else cerrarGrafModal();
+    });
+    // Al girar el móvil o cambiar el tamaño de la ventana se redibuja al nuevo ancho
+    window.addEventListener("resize", () => { if (!eGrafModal.hidden) renderGraficas(); });
 
     // Modal de información de Extracciones (horario)
     const eInfoBtn = document.getElementById("e-info-btn");
@@ -4533,7 +4836,7 @@
       });
     }
 
-    // Horario de las 3 extracciones del día, definido por la usuaria en el
+    // Horario de las 2 extracciones del día, definido por la usuaria en el
     // modal "Horario de extracciones". Devuelve horas "H:MM" (sin cero inicial).
     function horasExtra() {
       const guardadas = load(KEY_EXTRA_HORAS);
@@ -7065,7 +7368,7 @@
     const teClose = document.getElementById("te-close");
     const teGroups = document.getElementById("te-groups");
 
-    // HTML de un grupo del modal (extra = 0 para "Durante el día"; 1–3 para extracciones).
+    // HTML de un grupo del modal (extra = 0 para "Durante el día"; 1–2 para extracciones).
     // Se muestran en el orden del array (reordenable con arrastre).
     function teHoyHTML(x) {
       return `<div class="te-flag">
@@ -7112,7 +7415,7 @@
       // tareas, para poder borrarlas.
       const sobrantes = [...new Set(items.map(x => x.extra).filter(n => n > horas.length || n < 0))].sort((a, b) => a - b);
       for (const n of sobrantes) {
-        html += teGroupHTML(n, n < 0 ? "Antigua extracción 1" : "Extracción " + n, "ya no se usa", items);
+        html += teGroupHTML(n, n < 0 ? "Antigua extracción " + -n : "Extracción " + n, "ya no se usa", items);
       }
       teGroups.innerHTML = html;
     }
@@ -7216,7 +7519,7 @@
     // Se renderizan dentro de renderTareas(); este alias mantiene las llamadas existentes.
     function renderTareasAntes() { renderTareas(); }
 
-    // Copia las tareas plantilla de la extracción nº n (1–3). Se acumulan:
+    // Copia las tareas plantilla de la extracción nº n (1–2). Se acumulan:
     // no se borran las de extracciones anteriores.
     function agregarTareasAntes(n) {
       if (!(n >= 1 && n <= HORAS_EXTRA_DEF.length)) return;
@@ -7574,35 +7877,38 @@
       }
     }
 
-    // 28-oct-2026: de 4 a 3 extracciones al día. Se elimina la antigua
-    // Extracción 1: el horario y las tareas de la 2 pasan a la 1, las de la 3
-    // a la 2 y las de la 4 a la 3. Las tareas de la antigua 1 se apartan
-    // (extra -1) para poder revisarlas y borrarlas en el modal. Se hace una
-    // sola vez en total: la marca en la nube se reserva con una transacción
-    // para que dos dispositivos no la repitan (desplazaría las tareas dos veces).
-    let migrandoTres = false;
-    function migrarATresExtracciones() {
-      if (migrandoTres || !nubeFiable(KEY_EXTRA_HORAS) || !nubeFiable(KEY_TAREAS_EXTRA)) return;
-      migrandoTres = true;
-      fdb.ref(FB_ROOT + "/migraciones/tres-extracciones")
+    // 28-oct-2026: de 4 a 3 extracciones (se eliminó la antigua Extracción 1;
+    // sus tareas quedaron apartadas con extra -1). Esa migración ya se aplicó.
+    //
+    // 17-nov-2026: de 3 a 2 extracciones al día. Se elimina la Extracción 2:
+    // el horario y las tareas de la 3 pasan a la 2; la 1 no cambia. Las tareas
+    // de la antigua 2 se apartan (extra -2) para poder revisarlas y borrarlas
+    // en el modal. Se hace una sola vez en total: la marca en la nube se
+    // reserva con una transacción para que dos dispositivos no la repitan
+    // (desplazaría las tareas dos veces).
+    let migrandoDos = false;
+    function migrarADosExtracciones() {
+      if (migrandoDos || !nubeFiable(KEY_EXTRA_HORAS) || !nubeFiable(KEY_TAREAS_EXTRA)) return;
+      migrandoDos = true;
+      fdb.ref(FB_ROOT + "/migraciones/dos-extracciones")
         .transaction((v) => (v ? undefined : Date.now()))
         .then(({ committed }) => {
           if (!committed) return;
           const cambios = {};
           const horas = load(KEY_EXTRA_HORAS);
           if (horas.length > HORAS_EXTRA_DEF.length) {
-            cambios[KEY_EXTRA_HORAS] = horas.slice(1, HORAS_EXTRA_DEF.length + 1);
+            cambios[KEY_EXTRA_HORAS] = [horas[0], horas[2]];
           }
           const tareas = load(KEY_TAREAS_EXTRA);
-          if (tareas.some(x => x && x.extra >= 1)) {
+          if (tareas.some(x => x && x.extra >= 2)) {
             cambios[KEY_TAREAS_EXTRA] = tareas.map(x => {
-              if (!x || !(x.extra >= 1)) return x;
-              return Object.assign({}, x, { extra: x.extra === 1 ? -1 : x.extra - 1 });
+              if (!x || !(x.extra >= 2)) return x;
+              return Object.assign({}, x, { extra: x.extra === 2 ? -2 : x.extra - 1 });
             });
           }
           if (Object.keys(cambios).length) return fdb.ref(FB_ROOT).update(cambios);
         })
-        .catch((e) => showError("al pasar a 3 extracciones: " + (e && e.message)));
+        .catch((e) => showError("al pasar a 2 extracciones: " + (e && e.message)));
     }
 
     function startFirebaseSync() {
@@ -7612,7 +7918,7 @@
       fdb.ref(".info/connected").on("value", (snap) => {
         fbOnline = !!snap.val();
         if (fbOnline) flushOutbox(); // sube lo que quedó pendiente, tarea a tarea
-        migrarATresExtracciones();
+        migrarADosExtracciones();
         updateStatus();
       });
       const sincronizadas = new Set(); // claves que ya recibieron su primer valor de la nube
@@ -7640,7 +7946,7 @@
           // por día) la plantilla de "Durante el día" con datos ya fiables.
           sincronizadas.add(key);
           if (sincronizadas.size === ALL_KEYS.length) aplicarPlantillaDia();
-          if (key === KEY_EXTRA_HORAS || key === KEY_TAREAS_EXTRA) migrarATresExtracciones();
+          if (key === KEY_EXTRA_HORAS || key === KEY_TAREAS_EXTRA) migrarADosExtracciones();
           renderAll();
         }, (err) => showError("al leer la nube: " + (err && err.message)));
       });
