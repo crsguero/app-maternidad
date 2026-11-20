@@ -888,6 +888,18 @@
     #edad-value { color: var(--primary-dark); }
     #cuarentena-value { color: var(--primary-dark); }
     #ba-since:not(.muted) { color: var(--primary-dark); }
+    .tn-next:not(.muted) { color: var(--primary-dark); }
+    .turno-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .turno-head .resumen-fecha { margin-bottom: 0; }
+    .turno-fechas { font-size: 0.8rem; color: var(--muted); text-align: right; }
+    .turno-row { background: var(--card); }
+    .turno-row:last-child { margin-bottom: 0; }
     .since-value.warn-text { color: var(--danger); }
     .since-value.ok-text { color: #2f8f6e; }
     .since-sub { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
@@ -1659,6 +1671,7 @@
         <button class="tab active" data-panel="home"><span class="ico">📊</span> Resumen</button>
         <div class="nav-group-label" data-nav-group="bebe">Bebé</div>
         <button class="tab" data-panel="tomas"><span class="ico">🍼</span> Tomas</button>
+        <button class="tab" data-panel="turno"><span class="ico">🌙</span> Turno nocturno</button>
         <button class="tab" data-panel="panales"><span class="ico">🧷</span> Pañales</button>
         <button class="tab" data-panel="bano"><span class="ico">🛁</span> Baño</button>
         <button class="tab" data-panel="sueno-bebe"><span class="ico">😴</span> Sueño</button>
@@ -1694,6 +1707,12 @@
         <div class="since-value t-since">—</div>
       </div>
       <div id="home-tomas-resumen"></div>
+
+      <h3 class="home-section-title">🌙 Turno nocturno</h3>
+      <div class="card since-card">
+        <div class="since-label">Próximo turno</div>
+        <div class="since-value tn-next">—</div>
+      </div>
 
       <h3 class="home-section-title">💧 Extracciones</h3>
       <div class="card since-card">
@@ -1811,6 +1830,26 @@
           <div class="pager" id="t-resumen-pager"></div>
           <div id="t-resumen"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ===================== TURNO NOCTURNO ===================== -->
+    <section class="panel" id="panel-turno">
+      <div class="toolbar toolbar-split">
+        <h2 class="panel-title">🌙 Turno nocturno</h2>
+      </div>
+
+      <div class="card since-card">
+        <div class="since-label">Próximo turno</div>
+        <div class="since-value tn-next">—</div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Tomas nocturnas</h2>
+        </div>
+        <div class="pager" id="tn-pager"></div>
+        <div id="tn-list"></div>
       </div>
     </section>
 
@@ -3272,6 +3311,7 @@
     const SECTIONS = {
       bebe: { title: "Bebé", items: [
         { panel: "tomas", ico: "🍼", label: "Tomas" },
+        { panel: "turno", ico: "🌙", label: "Turno nocturno" },
         { panel: "panales", ico: "🧷", label: "Pañales" },
         { panel: "bano", ico: "🛁", label: "Baño" },
         { panel: "sueno-bebe", ico: "😴", label: "Sueño" },
@@ -3292,7 +3332,7 @@
     // A qué botón de la barra corresponde cada panel
     const PANEL_SECTION = {
       home: "home",
-      tomas: "bebe", panales: "bebe", bano: "bebe", "sueno-bebe": "bebe", dolencias: "bebe", dolencia: "bebe", cita: "bebe",
+      tomas: "bebe", turno: "bebe", panales: "bebe", bano: "bebe", "sueno-bebe": "bebe", dolencias: "bebe", dolencia: "bebe", cita: "bebe",
       extracciones: "mama", sueno: "mama", paracetamol: "mama", postparto: "mama", hierro: "mama", tareas: "mama"
     };
 
@@ -3778,6 +3818,7 @@
     }
 
     function renderTomas() {
+      renderTurno();
       updateTomaSince();
       renderTomasResumen();
       renderHomeTomas();
@@ -4733,6 +4774,135 @@
       closeTomaModal();
       renderTomas();
       updateStatus();
+    });
+
+    /* ===================== TURNO NOCTURNO ===================== */
+    // Tomas de 22:00 a 7:59 (una toma a las 8:00 ya no cuenta). Cada noche se
+    // identifica por la fecha en que empieza (las 22:00 de ese día).
+    var turnoWeek = null; // inicio de la semana mostrada (var: renderTomas puede llamarse antes)
+    function nocheDeToma(t) {
+      if (!t || !t.fecha || !t.hora) return null;
+      if (t.hora >= "22:00") return t.fecha;
+      if (t.hora < "08:00") return addDays(t.fecha, -1);
+      return null;
+    }
+    function tomasNocturnas() {
+      return load(KEY_TOMAS).filter(Boolean)
+        .map(t => ({ t, noche: nocheDeToma(t) }))
+        .filter(x => x.noche);
+    }
+    // Días de la semana ("Lunes - Martes") y fechas ("16-17 noviembre 2026") por separado
+    function rangoNocheTexto(noche) {
+      const info = f => {
+        const [y, m, d] = f.split("-").map(Number);
+        const dt = new Date(y, m - 1, d);
+        const dia = dt.toLocaleDateString("es-ES", { weekday: "long" });
+        return { y, d, dia: dia.charAt(0).toUpperCase() + dia.slice(1),
+          mes: dt.toLocaleDateString("es-ES", { month: "long" }) };
+      };
+      const a = info(noche), b = info(addDays(noche, 1));
+      const fechas = a.y !== b.y
+        ? `${a.d} ${a.mes} ${a.y} - ${b.d} ${b.mes} ${b.y}`
+        : a.mes !== b.mes
+          ? `${a.d} ${a.mes} - ${b.d} ${b.mes} ${b.y}`
+          : `${a.d}-${b.d} ${b.mes} ${b.y}`;
+      return { dias: `${a.dia} - ${b.dia}`, fechas };
+    }
+
+    function updateTurnoNext(noct) {
+      // Tarjeta de la pestaña Turno nocturno y la del Resumen
+      const els = document.querySelectorAll(".tn-next");
+      if (!els.length) return;
+      // Última toma nocturna con "¿Quién?" indicado
+      let ultima = null;
+      for (const x of noct) {
+        if (x.t.quien !== "mama" && x.t.quien !== "papa") continue;
+        if (!ultima || (x.t.fecha + x.t.hora) > (ultima.fecha + ultima.hora)) ultima = x.t;
+      }
+      const prox = ultima ? (ultima.quien === "mama" ? "papa" : "mama") : null;
+      els.forEach(el => {
+        el.classList.toggle("muted", !prox);
+        el.textContent = prox ? `${quienIco(prox)} ${quienNombre(prox)}` : "Aún no hay tomas nocturnas";
+      });
+    }
+
+    function renderTurnoPager(semanas, idx) {
+      const pager = document.getElementById("tn-pager");
+      if (!pager) return;
+      const start = semanas[idx];
+      const num = weekNumber(start);
+      const atNewest = idx <= 0;
+      const atOldest = idx >= semanas.length - 1;
+      pager.innerHTML =
+        `<button class="pager-btn" data-dir="older" title="Semana anterior" aria-label="Semana anterior" ${atOldest ? "disabled" : ""}>❮</button>` +
+        `<div class="pager-center">` +
+          `<span class="pager-label">${num >= 1 ? "Semana " + num : "Antes de la semana 1"}</span>` +
+          `<span class="pager-byline">${rangoSemanaTexto(start)}</span>` +
+        `</div>` +
+        `<button class="pager-btn" data-dir="newer" title="Semana siguiente" aria-label="Semana siguiente" ${atNewest ? "disabled" : ""}>❯</button>`;
+    }
+
+    function semanasTurno(noct) {
+      return [...new Set(noct.map(x => weekStart(x.noche)))].sort((a, b) => b.localeCompare(a));
+    }
+
+    function renderTurno() {
+      const list = document.getElementById("tn-list");
+      const pager = document.getElementById("tn-pager");
+      if (!list) return;
+      const noct = tomasNocturnas();
+      updateTurnoNext(noct);
+      if (noct.length === 0) {
+        list.innerHTML = '<div class="empty">Aún no hay tomas nocturnas registradas.</div>';
+        if (pager) pager.innerHTML = "";
+        return;
+      }
+      const semanas = semanasTurno(noct);
+      if (!semanas.includes(turnoWeek)) turnoWeek = semanas[0];
+      renderTurnoPager(semanas, semanas.indexOf(turnoWeek));
+
+      const groups = {};
+      for (const x of noct) {
+        if (weekStart(x.noche) !== turnoWeek) continue;
+        (groups[x.noche] = groups[x.noche] || []).push(x.t);
+      }
+      const noches = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+      let html = "";
+      for (const noche of noches) {
+        const its = groups[noche].sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+        const rango = rangoNocheTexto(noche);
+        html += `<div class="resumen-dia turno-noche">
+          <div class="turno-head">
+            <div class="resumen-fecha">${rango.dias}</div>
+            <div class="turno-fechas">${rango.fechas}</div>
+          </div>`;
+        for (const t of its) {
+          const ico = quienIco(t.quien);
+          const nombre = quienNombre(t.quien);
+          html += `<div class="toma turno-row">
+              <span class="quien-ico">${ico || "❔"}</span>
+              <div class="toma-info">
+                <div class="toma-time">${t.hora}</div>
+                <div class="toma-type">${nombre || "Sin indicar"}</div>
+              </div>
+            </div>`;
+        }
+        html += `</div>`;
+      }
+      list.innerHTML = html;
+    }
+
+    document.getElementById("tn-pager").addEventListener("click", (e) => {
+      const btn = e.target.closest(".pager-btn");
+      if (!btn || btn.disabled) return;
+      const semanas = semanasTurno(tomasNocturnas());
+      let idx = semanas.indexOf(turnoWeek);
+      if (idx < 0) idx = 0;
+      idx = btn.dataset.dir === "older"
+        ? Math.min(idx + 1, semanas.length - 1)
+        : Math.max(idx - 1, 0);
+      turnoWeek = semanas[idx];
+      renderTurno();
     });
 
     /* ===================== EXTRACCIONES ===================== */
